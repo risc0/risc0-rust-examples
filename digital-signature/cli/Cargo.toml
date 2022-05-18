@@ -7,8 +7,8 @@ edition = "2021"
 clap = "3.1.18"
 env_logger = "0.9.0"
 log = "0.4.17"
-risc0-digital-signature-state = { path = "../state" }
 risc0-digital-signature-methods = { path = "../methods" }
+risc0-digital-signature-shared = { path = "../shared" }
 risc0-zkvm-core = "0.7.0-dev.1"
 risc0-zkvm-host = "0.7.0-dev.1"
 risc0-zkvm-serde = "0.7.0-dev.1"

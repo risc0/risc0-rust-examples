@@ -1,5 +1,5 @@
 [package]
-name = "risc0-digital-signature-state"
+name = "risc0-digital-signature-shared"
 version = "0.1.0"
 edition = "2021"
 

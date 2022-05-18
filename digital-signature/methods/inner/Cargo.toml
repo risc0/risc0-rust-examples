@@ -7,5 +7,5 @@ edition = "2021"
 risc0-build = "0.7.0-dev.1"
 
 [target.riscv32im-unknown-none-elf.dependencies]
-risc0-digital-signature-state = { path = "../../state" }
+risc0-digital-signature-shared = { path = "../../shared" }
 risc0-zkvm-guest = "0.7.0-dev.1"

@@ -888,7 +888,7 @@ dependencies = [
  "env_logger",
  "log",
  "risc0-digital-signature-methods",
- "risc0-digital-signature-state",
+ "risc0-digital-signature-shared",
  "risc0-zkvm-core",
  "risc0-zkvm-host",
  "risc0-zkvm-serde",
@@ -905,7 +905,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "risc0-digital-signature-state"
+name = "risc0-digital-signature-shared"
 version = "0.1.0"
 dependencies = [
  "risc0-zkvm-core",

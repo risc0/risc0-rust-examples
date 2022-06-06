@@ -18,6 +18,7 @@ use clap::{Arg, Command};
 use log::LevelFilter;
 
 use lib::sign;
+use sha2::{Digest, Sha256};
 
 fn main() {
     env_logger::builder().filter_level(LevelFilter::Info).init();
@@ -26,27 +27,36 @@ fn main() {
         .version("0.1.0")
         .author("Risc0, Inc.")
         .about("Digital signatures with Risc0")
+        .arg(Arg::new("message").required(true))
         .arg(
-            Arg::new("msg")
-                .long("msg")
-                .takes_value(true)
-                .help("Message"),
-        )
-        .arg(
-            Arg::new("pass")
-                .long("pass")
-                .takes_value(true)
-                .help("Passphrase"),
+            Arg::new("passphrase")
+                .long("passphrase")
+                .required(true)
+                .takes_value(true),
         )
         .get_matches();
 
-    let msg_str = matches.value_of("msg").unwrap();
-    let pass_str = matches.value_of("pass").unwrap();
+    let message = matches.value_of("message").unwrap();
+    let passphrase = matches.value_of("passphrase").unwrap();
+    let signing_receipt = sign(&passphrase, &message).unwrap();
 
-    let signing_receipt = sign(&pass_str, &msg_str).unwrap();
-
-    log::info!("msg: {:?}", &msg_str);
-    log::info!("commit: {:?}", &signing_receipt.get_commit().unwrap());
-
-    signing_receipt.verify().unwrap();
+    log::info!("Inputs");
+    log::info!("\tmessage: {:?}", &message);
+    log::info!("Commitment:");
+    log::info!("\tmessage: {:?}", &signing_receipt.get_message().unwrap());
+    log::info!("\tidentity: {:?}", &signing_receipt.get_identity().unwrap());
+    log::info!("Integrity Checks:");
+    let message_hash = &signing_receipt.get_message().unwrap().msg;
+    let expected_message_hash = Sha256::digest(message);
+    if message_hash != expected_message_hash.as_slice() {
+        log::error!("Message commitment does not match given message!");
+        std::process::exit(1);
+    }
+    log::info!("\tmessage: valid");
+    if signing_receipt.verify().is_err() {
+        log::error!("Receipt is invalid!");
+        log::error!("{}", signing_receipt.verify().unwrap_err());
+        std::process::exit(1);
+    }
+    log::info!("\treceipt: valid");
 }

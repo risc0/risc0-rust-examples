@@ -1,7 +1,14 @@
 [package]
-name = "risc0-digital-signature-methods"
+name = "digital-signature-methods"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.risc0]
+methods = ["guest"]
+
+[profile.release]
+lto = true
+opt-level = "z"
+
 [build-dependencies]
-risc0-build = "0.7.0-dev.1"
+risc0-build = "0.7.2"

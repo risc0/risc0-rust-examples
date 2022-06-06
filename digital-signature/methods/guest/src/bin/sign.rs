@@ -17,7 +17,7 @@
 
 use risc0_zkvm_guest::{env, sha};
 
-use risc0_digital_signature_shared::{SignMessageCommit, SigningRequest};
+use digital_signature_core::{SignMessageCommit, SigningRequest};
 
 risc0_zkvm_guest::entry!(main);
 

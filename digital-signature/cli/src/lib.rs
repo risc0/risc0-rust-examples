@@ -19,8 +19,8 @@ use tempfile::tempdir;
 use risc0_zkvm_host::{Prover, Receipt, Result};
 use risc0_zkvm_serde::{from_slice, to_vec};
 
-pub use risc0_digital_signature_shared::{Message, Passphrase, SignMessageCommit, SigningRequest};
-use risc0_digital_signature_methods::methods::{SIGN_ID, SIGN_PATH};
+pub use digital_signature_core::{Message, Passphrase, SignMessageCommit, SigningRequest};
+use digital_signature_methods::{SIGN_ID, SIGN_PATH};
 
 pub struct SignatureWithReceipt {
     receipt: Receipt,

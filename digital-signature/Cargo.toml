@@ -1,0 +1,8 @@
+[workspace]
+members = [
+  "risc0-build-methods",
+  "core",
+  "methods",
+  "cli",
+]
+default-members = ["cli"]

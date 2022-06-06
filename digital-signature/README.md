@@ -1,6 +1,6 @@
 # Simple digital signature
 
-A simple digital signature scheme built on the Risc Zero platform.
+A simple digital signature scheme built on the RISC Zero platform.
 
 ## Summary
 

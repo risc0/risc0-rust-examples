@@ -22,6 +22,6 @@ typical digital signature scheme.
 ## Run the example
 
 ```bash
-cargo run --bin risc0-build-methods
-cargo run -- "This is a signed message" --passphrase="passw0rd"
+cargo run --p risc0-build-methods
+cargo run --release -- "This is a signed message" --passphrase="passw0rd"
 ```

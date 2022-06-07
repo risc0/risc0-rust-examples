@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [digital-signature] # TODO: Use cargo or find/ls to find projects
+        os: [Linux, macOS] # Skipping windows for now (it's flaky)
+        include:
+          - os: Linux
+            config: --config=ci
+    runs-on: [self-hosted, "${{ matrix.os }}"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo run -p risc0-build-methods
+        working-directory: ${{ matrix.project }} 
+      - run: cargo test
+        working-directory: ${{ matrix.project }}
+

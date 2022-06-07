@@ -16,3 +16,5 @@ jobs:
           toolchain: stable
       - run: cargo run --manifest-path digital-signature -p risc0-build-methods
       - run: cargo test --manifest-path digital-signature
+      - run: echo "All done"
+

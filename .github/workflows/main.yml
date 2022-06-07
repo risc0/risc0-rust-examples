@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [Linux, macOS] # Skipping windows for now (it's flaky)
         project: [digital-signature] # TODO: Use cargo or find/ls to find projects
+        os: [Linux, macOS] # Skipping windows for now (it's flaky)
         include:
           - os: Linux
             config: --config=ci
@@ -26,7 +26,7 @@ jobs:
         with:
           toolchain: stable
       - run: cargo run -p risc0-build-methods
-        working-directory: ${{ matrix.digital-signature }} 
+        working-directory: ${{ matrix.project }} 
       - run: cargo test
-        working-directory: ${{ matrix.digital-signature }}
+        working-directory: ${{ matrix.project }}
 

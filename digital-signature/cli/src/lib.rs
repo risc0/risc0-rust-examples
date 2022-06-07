@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use sha2::{Digest, Sha256};
 use std::fs;
-use tempfile::tempdir;
-
-use risc0_zkvm_host::{Prover, Receipt, Result};
-use risc0_zkvm_serde::{from_slice, to_vec};
 
 pub use digital_signature_core::{Message, Passphrase, SignMessageCommit, SigningRequest};
 use digital_signature_methods::{SIGN_ID, SIGN_PATH};
+use risc0_zkvm_host::{Prover, Receipt, Result};
+use risc0_zkvm_serde::{from_slice, to_vec};
+use sha2::{Digest, Sha256};
+use tempfile::tempdir;
 
 pub struct SignatureWithReceipt {
     receipt: Receipt,

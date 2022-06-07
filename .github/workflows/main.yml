@@ -11,14 +11,22 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, "Linux"]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Linux, macOS] # Skipping windows for now (it's flaky)
+        project: [digital-signature] # TODO: Use cargo or find/ls to find projects
+        include:
+          - os: Linux
+            config: --config=ci
+    runs-on: [self-hosted, "${{ matrix.os }}"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
       - run: cargo run -p risc0-build-methods
-        working-directory: digital-signature
+        working-directory: ${{ matrix.digital-signature }} 
       - run: cargo test
-        working-directory: digital-signature
+        working-directory: ${{ matrix.digital-signature }}
 

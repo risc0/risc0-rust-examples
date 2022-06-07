@@ -17,6 +17,8 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo run --manifest-path digital-signature/Cargo.toml -p risc0-build-methods
-      - run: cargo test --manifest-path digital-signature/Cargo.toml
+      - run: cargo run -p risc0-build-methods
+        working-directory: digital-signature
+      - run: cargo test
+        working-directory: digital-signature
 

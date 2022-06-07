@@ -15,9 +15,8 @@
 mod lib;
 
 use clap::{Arg, Command};
-use log::LevelFilter;
-
 use lib::sign;
+use log::LevelFilter;
 use sha2::{Digest, Sha256};
 
 fn main() {

@@ -17,11 +17,11 @@ use std::fs;
 use risc0_zkvm_host::{Prover, Receipt, Result};
 use risc0_zkvm_serde::{from_slice, to_vec};
 use tempfile::{NamedTempFile, TempPath};
-use voting_machine_core::{Ballot, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult};
 use voting_machine_core::{
-    FreezeVotingMachineCommit, FreezeVotingMachineParams, FreezeVotingMachineResult,
+    Ballot, FreezeVotingMachineCommit, FreezeVotingMachineParams, FreezeVotingMachineResult,
+    InitializeVotingMachineCommit, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult,
+    VotingMachineState,
 };
-use voting_machine_core::{InitializeVotingMachineCommit, VotingMachineState};
 use voting_machine_methods::{FREEZE_ID, FREEZE_PATH, INIT_ID, INIT_PATH, SUBMIT_ID, SUBMIT_PATH};
 
 pub struct InitMessage {

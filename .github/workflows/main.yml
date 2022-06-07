@@ -15,14 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [Linux, macOS, Windows]
-        project: [digital-signature]
-    runs-on: [self-hosted, "${{ matrix.os }}"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
       - run: cargo run -p risc0-build-methods
-        working-directory: ${{ matrix.project }}
+        working-directory: digital-signature 
       - run: cargo test
-        working-directory: ${{ matrix.project }}
+        working-directory: digital-signature 

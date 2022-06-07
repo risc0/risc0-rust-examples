@@ -25,6 +25,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - run: cargo fmt --check
       - run: cargo run -p risc0-build-methods
         working-directory: ${{ matrix.project }} 
       - run: cargo test

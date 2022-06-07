@@ -125,4 +125,3 @@ impl FreezeVotingMachineParams {
         FreezeVotingMachineResult { state: state }
     }
 }
-

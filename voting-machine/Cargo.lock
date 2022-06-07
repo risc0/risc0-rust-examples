@@ -737,9 +737,7 @@ name = "voting-machine-core"
 version = "0.1.0"
 dependencies = [
  "risc0-zkvm-core",
- "risc0-zkvm-serde",
  "serde",
- "voting-machine-methods",
 ]
 
 [[package]]

@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fs;
+
 use risc0_zkvm_host::{Prover, Receipt, Result};
 use risc0_zkvm_serde::{from_slice, to_vec};
-use std::fs;
 use tempfile::{NamedTempFile, TempPath};
 use voting_machine_core::{Ballot, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult};
 use voting_machine_core::{

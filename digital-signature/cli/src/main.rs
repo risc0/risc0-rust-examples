@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod lib;
-
 use clap::{Arg, Command};
-use lib::sign;
+use digital_signature::sign;
 use log::LevelFilter;
 use sha2::{Digest, Sha256};
 

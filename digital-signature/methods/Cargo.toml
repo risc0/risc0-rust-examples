@@ -11,4 +11,4 @@ lto = true
 opt-level = "z"
 
 [build-dependencies]
-risc0-build = "0.7"
+risc0-build = "0.8"

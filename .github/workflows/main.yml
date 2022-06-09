@@ -14,11 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [digital-signature, voting-machine] # TODO: Use cargo or find/ls to find projects
-        os: [Linux, macOS] # Skipping windows for now (it's flaky)
-        include:
-          - os: Linux
-            config: --config=ci
+        project:
+          - digital-signature
+          - voting-machine
+        os: [Linux, macOS]
     runs-on: [self-hosted, "${{ matrix.os }}"]
     steps:
       - uses: actions/checkout@v2
@@ -27,8 +26,5 @@ jobs:
           toolchain: stable
       - run: cargo fmt --check
         working-directory: ${{ matrix.project }} 
-      - run: cargo run -p risc0-build-methods
-        working-directory: ${{ matrix.project }} 
-      - run: cargo test
+      - run: cargo test --release
         working-directory: ${{ matrix.project }}
-

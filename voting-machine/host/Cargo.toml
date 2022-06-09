@@ -1,5 +1,5 @@
 [package]
-name = "digital-signature-cli"
+name = "voting-machine"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,9 +8,9 @@ clap = "3.1.18"
 ctor = "0.1"
 env_logger = "0.9.0"
 log = "0.4.17"
-risc0-zkvm-core = "0.7"
-risc0-zkvm-host = "0.7"
-risc0-zkvm-serde = "0.7"
+risc0-zkvm-core = "0.8"
+risc0-zkvm-host = "0.8"
+risc0-zkvm-serde = "0.8"
 tempfile = "3.3"
 voting-machine-methods = { path = "../methods" }
 voting-machine-core = { path = "../core" }

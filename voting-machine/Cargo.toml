@@ -2,6 +2,5 @@
 members = [
   "core",
   "methods",
-  "risc0-build-methods",
   "host",
 ]

@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fs;
-
 use risc0_zkvm_host::{Prover, Receipt, Result};
 use risc0_zkvm_serde::{from_slice, to_vec};
-use tempfile::{NamedTempFile, TempPath};
 use voting_machine_core::{
     Ballot, FreezeVotingMachineCommit, FreezeVotingMachineParams, FreezeVotingMachineResult,
     InitializeVotingMachineCommit, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult,
@@ -28,13 +25,6 @@ pub struct InitMessage {
     receipt: Receipt,
 }
 
-// Temporary hack to get around missing buffer-based apis for receipt and prover
-pub fn to_tempfile(id: &[u8]) -> TempPath {
-    let path = NamedTempFile::new().unwrap().into_temp_path();
-    fs::write(path.to_str().unwrap(), id).unwrap();
-    path
-}
-
 impl InitMessage {
     pub fn get_state(&self) -> Result<InitializeVotingMachineCommit> {
         let msg = self.receipt.get_journal_vec()?;
@@ -42,8 +32,7 @@ impl InitMessage {
     }
 
     pub fn verify_and_get_commit(&self) -> Result<InitializeVotingMachineCommit> {
-        let id_path = to_tempfile(INIT_ID);
-        self.receipt.verify(id_path.to_str().unwrap())?;
+        self.receipt.verify(INIT_ID)?;
         self.get_state()
     }
 }
@@ -59,8 +48,7 @@ impl SubmitBallotMessage {
     }
 
     pub fn verify_and_get_commit(&self) -> Result<SubmitBallotCommit> {
-        let id_path = to_tempfile(SUBMIT_ID);
-        self.receipt.verify(id_path.to_str().unwrap())?;
+        self.receipt.verify(SUBMIT_ID)?;
         self.get_commit()
     }
 }
@@ -76,8 +64,7 @@ impl FreezeStationMessage {
     }
 
     pub fn verify_and_get_commit(&self) -> Result<FreezeVotingMachineCommit> {
-        let id_path = to_tempfile(FREEZE_ID);
-        self.receipt.verify(id_path.to_str().unwrap())?;
+        self.receipt.verify(FREEZE_ID)?;
         self.get_commit()
     }
 }
@@ -94,8 +81,7 @@ impl PollingStation {
 
     pub fn init(&self) -> Result<InitMessage> {
         log::info!("init");
-        let id_path = to_tempfile(INIT_ID);
-        let mut prover = Prover::new(INIT_PATH, id_path.to_str().unwrap())?;
+        let mut prover = Prover::new(INIT_PATH, INIT_ID)?;
         let vec = to_vec(&self.state).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;
@@ -105,8 +91,7 @@ impl PollingStation {
     pub fn submit(&mut self, ballot: &Ballot) -> Result<SubmitBallotMessage> {
         log::info!("submit: {:?}", ballot);
         let params = SubmitBallotParams::new(self.state.clone(), ballot.clone());
-        let id_path = to_tempfile(SUBMIT_ID);
-        let mut prover = Prover::new(SUBMIT_PATH, id_path.to_str().unwrap())?;
+        let mut prover = Prover::new(SUBMIT_PATH, SUBMIT_ID)?;
         let vec = to_vec(&params).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;
@@ -121,8 +106,7 @@ impl PollingStation {
     pub fn freeze(&mut self) -> Result<FreezeStationMessage> {
         log::info!("freeze");
         let params = FreezeVotingMachineParams::new(self.state.clone());
-        let id_path = to_tempfile(FREEZE_ID);
-        let mut prover = Prover::new(FREEZE_PATH, id_path.to_str().unwrap())?;
+        let mut prover = Prover::new(FREEZE_PATH, FREEZE_ID)?;
         let vec = to_vec(&params).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;

@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fs;
-
 pub use digital_signature_core::{Message, Passphrase, SignMessageCommit, SigningRequest};
 use digital_signature_methods::{SIGN_ID, SIGN_PATH};
 use risc0_zkvm_host::{Prover, Receipt, Result};
 use risc0_zkvm_serde::{from_slice, to_vec};
 use sha2::{Digest, Sha256};
-use tempfile::tempdir;
 
 pub struct SignatureWithReceipt {
     receipt: Receipt,
@@ -42,16 +39,7 @@ impl SignatureWithReceipt {
     }
 
     pub fn verify(&self) -> Result<SignMessageCommit> {
-        let temp_dir = tempdir().unwrap();
-        let id_path = temp_dir
-            .path()
-            .join("sign.id")
-            .to_str()
-            .unwrap()
-            .to_string();
-        fs::write(&id_path, SIGN_ID).unwrap();
-
-        self.receipt.verify(&id_path)?;
+        self.receipt.verify(SIGN_ID)?;
         self.get_commit()
     }
 }
@@ -75,16 +63,7 @@ pub fn sign(pass_str: impl AsRef<[u8]>, msg_str: impl AsRef<[u8]>) -> Result<Sig
         msg: msg,
     };
 
-    let temp_dir = tempdir().unwrap();
-    let id_path = temp_dir
-        .path()
-        .join("sign.id")
-        .to_str()
-        .unwrap()
-        .to_string();
-    fs::write(&id_path, SIGN_ID).unwrap();
-
-    let mut prover = Prover::new(&SIGN_PATH, &id_path)?;
+    let mut prover = Prover::new(&SIGN_PATH, SIGN_ID)?;
     let vec = to_vec(&params).unwrap();
     prover.add_input(vec.as_slice())?;
     let receipt = prover.run()?;

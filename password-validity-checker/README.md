@@ -1,32 +1,37 @@
-# Simple digital signature
+# password_checker
 
-A simple digital signature scheme built on the RISC Zero platform.
+This simple password checker is implemented in Rust. The program is implemented in two parts: a policy checker (that runs in the zkVM) and a host driver (an ordinary command-line program that uses the zkVM to run the policy checker).
 
-## Summary
+The policy checker accepts a password string and a salt from the host driver and checks the validity of the password. A password validity-checking function then examines the password and panics if criteria are not met. If the password meets validity criteria, execution proceeds and the zkVM appends a hash of the salted password to the journal. The journal is a readable record of all values committed by code in the zkVM; it is attached to the receipt (a record of correct execution).
 
-From [Wikipedia](https://en.wikipedia.org/wiki/Digital_signature):
-> A digital signature is a mathematical scheme for verifying the authenticity of
-digital messages or documents. A valid digital signature, where the
-prerequisites are satisfied, gives a recipient very high confidence that the
-message was created by a known sender (authenticity), and that the message was
-not altered in transit (integrity).
+# Why use zkVM to run this?
 
-This example shows how to build a simple digital signature scheme on the Risc0
-platform. In this scheme, the sender possesses a passphrase which they use to
-sign messages. Their identity is simply the SHA-256 hash of their passphrase.
+Our goal is to run our own password check locally without having to share our password directly with a recipient, preferring instead to share only a SHA-256 password hash. Because the validity-checking and hashing functionality runs on the zkVM, it generates a receipt that identifies which binary was executed (via the method ID), associates shared results with this particular execution (via the journal), and confirms its own integrity (via the cryptographic seal).
 
-In our scheme, we would send the message, the commitment (message and
-passphrase), and the receipt. The allows the recipient to know that we have the
-passphrase (authenticity) and used it to sign the message in question
-(integrity).
+# Project organization
 
-Specifically, the sender uses the zkVM to run `sign(message, passphrase)`. This
-returns a data structure that includes the important components: commitment and
-receipt. Sending those along with the message covers the full scope of a typical
-digital signature scheme.
+The main program that calls a method in the guest ZKVM is in [starter/src/main.rs](starter/src/main.rs). The code that runs inside the ZKVM is in [methods/guest/src/bin/pw_checker.rs](methods/guest/src/bin/pw_checker.rs). The rest of the project is build support.
 
-## Run the example
+For the main RISC Zero project, see [here](https://github.com/risc0/risc0)
 
-```bash
-cargo run --release -- "This is a signed message" --passphrase="passw0rd"
+
+# Building and running this program
+
+Make sure you are using the nightly version of rust:
+
 ```
+rustup toolchain install nightly
+rustup override set nightly
+```
+
+# Run this example
+
+To build and run this example, use:
+
+```
+cargo run --release
+```
+
+# And now, some fine print
+
+This repository contains example code meant to illustrate the fundamentals of programming with the zkVM. The password policy (and broader protocol) implemented here is intended for educational purposes only.

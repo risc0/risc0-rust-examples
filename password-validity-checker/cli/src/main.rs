@@ -7,6 +7,7 @@ use risc0_zkvm_core::Digest;
 use risc0_zkvm_host::Prover;
 use risc0_zkvm_serde::{from_slice, to_vec};
 use tempfile::tempdir;
+use tempfile::tempfile;
 
 fn main() {
     let password: &str = "S00perSecr1t!!!";
@@ -40,13 +41,7 @@ fn main() {
 
     let receipt = prover.run().unwrap();
 
-    // Because the password hash has been committed to the journal,
-    // we can read its value from the receipt
-    let pw_hash: Digest = from_slice(&receipt.get_journal_vec().unwrap()).unwrap();
-    println!("This is the hash of a valid password: {}", pw_hash);
-
-    // Here is where one would send 'receipt' over the network...
-
-    // Verify receipt, panic if it's wrong
+    // In most scenarios, we would serialize and send the receipt to a verifier here
+    // The verifier checks the receipt with the following call, which panics if the receipt is wrong
     receipt.verify(PW_CHECKER_ID).unwrap();
 }

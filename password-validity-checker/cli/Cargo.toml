@@ -1,0 +1,20 @@
+[package]
+name = "password-validity-checker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "3.1.18"
+env_logger = "0.9.0"
+log = "0.4.17"
+password-validity-checker-methods = { path = "../methods" }
+risc0-zkvm-host = "0.9"
+risc0-zkvm-core = "0.9"
+risc0-zkvm-serde = "0.9"
+serde = "1.0"
+rand = "0.8"
+sha2 = "0.10.2"
+tempfile = "3.3"
+
+[dev-dependencies]
+ctor = "0.1"

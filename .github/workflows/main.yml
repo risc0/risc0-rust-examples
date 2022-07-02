@@ -16,6 +16,7 @@ jobs:
       matrix:
         project:
           - digital-signature
+          - password-checker
           - voting-machine
         os: [Linux, macOS]
     runs-on: [self-hosted, "${{ matrix.os }}"]
@@ -24,7 +25,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo fmt --check
+      - run: cargo fmt --all -- --check
         working-directory: ${{ matrix.project }} 
       - run: cargo test --release
         working-directory: ${{ matrix.project }}

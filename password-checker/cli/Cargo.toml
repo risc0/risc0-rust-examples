@@ -1,11 +1,11 @@
 [package]
-name = "password-validity-checker"
+name = "password-checker"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-password-validity-checker-core = { path = "../core" }
-password-validity-checker-methods = { path = "../methods" }
+password-checker-core = { path = "../core" }
+password-checker-methods = { path = "../methods" }
 rand = "0.8"
 risc0-zkvm-host = "0.10"
 risc0-zkvm-core = "0.10"

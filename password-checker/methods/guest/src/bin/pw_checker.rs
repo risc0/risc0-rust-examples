@@ -14,7 +14,7 @@
 
 #![no_main]
 
-use password_validity_checker_core::PasswordRequest;
+use password_checker_core::PasswordRequest;
 use risc0_zkvm_guest::{env, sha};
 
 risc0_zkvm_guest::entry!(main);

@@ -70,6 +70,20 @@ name = "bytemuck"
 version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "562e382481975bc61d11275ac5e62a19abd00b0547d99516a415336f183dcd0e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "byteorder"
@@ -409,17 +423,6 @@ checksum = "fd48d33ec7f05fbfa152300fdad764757cbded343c1aa1cff2fbaf4134851803"
 dependencies = [
  "typenum",
  "version_check",
-]
-
-[[package]]
-name = "getrandom"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4eb1a864a501629691edf6c15a593b7a51eebaa1e8468e9ddc623de7c9b58ec6"
-dependencies = [
- "cfg-if",
- "libc",
- "wasi",
 ]
 
 [[package]]
@@ -779,6 +782,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "password-checker-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "password-checker-guest"
+version = "0.1.0"
+dependencies = [
+ "password-checker-core",
+ "risc0-build",
+ "risc0-zkvm-guest",
+]
+
+[[package]]
 name = "password-hash"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -790,30 +809,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "password-validity-checker"
-version = "0.1.0"
-dependencies = [
- "password-validity-checker-core",
- "password-validity-checker-methods",
- "rand",
- "risc0-zkvm-core",
- "risc0-zkvm-host",
- "risc0-zkvm-serde",
-]
-
-[[package]]
-name = "password-validity-checker-core"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "password-validity-checker-methods"
-version = "0.1.0"
-dependencies = [
- "risc0-build",
-]
+name = "paste"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
 
 [[package]]
 name = "pbkdf2"
@@ -852,12 +851,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
-name = "ppv-lite86"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -881,18 +874,6 @@ version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
- "libc",
- "rand_chacha",
- "rand_core",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
-dependencies = [
- "ppv-lite86",
  "rand_core",
 ]
 
@@ -901,9 +882,6 @@ name = "rand_core"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
-dependencies = [
- "getrandom",
-]
 
 [[package]]
 name = "redox_syscall"
@@ -1008,6 +986,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "risc0-zkp-core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3dfd3bb0b4f2a4250d7332c3d647418502449e773b176552aae869537c4a96bf"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "paste",
+ "rand",
+ "rand_core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "risc0-zkp-sys"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1048,6 +1041,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae75141a6d56ee0afe897796624aa33551400344f6bd0ac98fe87b0afacf8679"
 dependencies = [
  "cfg-if",
+ "risc0-zkp-core",
+ "serde",
+]
+
+[[package]]
+name = "risc0-zkvm-guest"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7bd5ab6e34f7f559823b4491561b35dfb7f55dfde9412c517e6779002271219"
+dependencies = [
+ "bytemuck",
+ "risc0-build",
+ "risc0-zkp-core",
+ "risc0-zkvm-core",
+ "risc0-zkvm-serde",
  "serde",
 ]
 

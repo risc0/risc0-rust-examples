@@ -1,12 +1,12 @@
 [package]
-name = "password-validity-checker-methods-guest"
+name = "password-checker-guest"
 version = "0.1.0"
 edition = "2021"
 
 [workspace]
 
 [dependencies]
-password-validity-checker-core = { path = "../../core" }
+password-checker-core = { path = "../../core" }
 risc0-zkvm-guest = "0.10"
 
 [profile.release]

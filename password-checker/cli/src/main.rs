@@ -14,8 +14,8 @@
 
 use std::fs;
 
-use password_validity_checker_core::PasswordRequest;
-use password_validity_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};
+use password_checker_core::PasswordRequest;
+use password_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};
 use rand::prelude::*;
 use risc0_zkvm_core::Digest;
 use risc0_zkvm_host::Prover;

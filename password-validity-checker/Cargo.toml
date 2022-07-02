@@ -3,5 +3,3 @@ members = [
   "methods",
   "cli"
 ]
-
-default-members = ["cli"]

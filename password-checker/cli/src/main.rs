@@ -12,33 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::fs;
 
-use password_validity_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};                    
+use password_checker_core::PasswordRequest;
+use password_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};
+use rand::prelude::*;
 use risc0_zkvm_core::Digest;
 use risc0_zkvm_host::Prover;
 use risc0_zkvm_serde::{from_slice, to_vec};
-use tempfile::tempdir;
-use rand::prelude::*;
 
 fn main() {
-    let password: &str = "S00perSecr1t!!!";
-
     let mut rng = StdRng::from_entropy();
-    let mut salt_bytes = [0u8, 32];
-    rng.fill(&mut salt_bytes);
+    let mut salt = [0u8; 32];
+    rng.fill_bytes(&mut salt);
+
+    let request = PasswordRequest {
+        password: "S00perSecr1t!!!".into(),
+        salt,
+    };
 
     // a new prover is created to run the pw_checker method
-    let mut prover = Prover::new(&PW_CHECKER_PATH, PW_CHECKER_ID).unwrap();
+    let elf_contents = fs::read(PW_CHECKER_PATH).unwrap();
+    let mut prover = Prover::new(&elf_contents, PW_CHECKER_ID).unwrap();
 
     // Adding input to the prover makes it readable by the guest
-    prover
-        .add_input(to_vec(&password).unwrap().as_slice())
-        .unwrap();
-    prover
-        .add_input(to_vec(&salt_bytes).unwrap().as_slice())
-        .unwrap();
+    let vec = to_vec(&request).unwrap();
+    prover.add_input(&vec).unwrap();
 
     let receipt = prover.run().unwrap();
     let password_hash: Digest = from_slice(&receipt.get_journal_vec().unwrap()).unwrap();

@@ -16,14 +16,17 @@ platform. In this scheme, the sender possesses a passphrase which they use to
 sign messages. Their identity is simply the SHA-256d hash of their passphrase.
 
 In our scheme, we would send the message, the commitment (message and
-passphrase), and the receipt. The allows the recipient to know that we have the
+identity), and the receipt. This allows the recipient to know that we have the
 passphrase (authenticity) and used it to sign the message in question
 (integrity).
 
 Specifically, the sender uses the zkVM to run `sign(message, passphrase)`. This
 returns a data structure that includes the important components: commitment and
-receipt. Sending those along with the message covers the full scope of a typical
-digital signature scheme.
+receipt. The commitment shows the message and the signer's identity, and the
+receipt proves that the identity was computed by taking the SHA-256d of
+the signer's passphrase (i.e. not just copied). Thus the signer must possess the
+passphrase. Sending those along with the message covers the full scope of a
+typical digital signature scheme.
 
 ## Run the example
 

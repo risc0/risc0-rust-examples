@@ -16,7 +16,7 @@ platform. In this scheme, the sender possesses a passphrase which they use to
 sign messages. Their identity is simply the SHA-256d hash of their passphrase.
 
 In our scheme, we would send the message, the commitment (message and
-identity), and the receipt. The allows the recipient to know that we have the
+identity), and the receipt. This allows the recipient to know that we have the
 passphrase (authenticity) and used it to sign the message in question
 (integrity).
 

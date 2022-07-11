@@ -10,7 +10,7 @@ Our goal is to run our own password check locally without having to share our pa
 
 # Project organization
 
-The main program that calls a method in the guest ZKVM is in [starter/src/main.rs](starter/src/main.rs). The code that runs inside the ZKVM is in [methods/guest/src/bin/pw_checker.rs](methods/guest/src/bin/pw_checker.rs). The rest of the project is build support.
+The main program that calls a method in the guest ZKVM is in [cli/src/main.rs](cli/src/main.rs). The code that runs inside the ZKVM is in [methods/guest/src/bin/pw_checker.rs](methods/guest/src/bin/pw_checker.rs). The rest of the project is build support.
 
 For the main RISC Zero project, see [here](https://github.com/risc0/risc0)
 

@@ -14,16 +14,6 @@ The main program that calls a method in the guest ZKVM is in [cli/src/main.rs](c
 
 For the main RISC Zero project, see [here](https://github.com/risc0/risc0)
 
-
-# Building and running this program
-
-Make sure you are using the nightly version of rust:
-
-```
-rustup toolchain install nightly
-rustup override set nightly
-```
-
 # Run this example
 
 To build and run this example, use:

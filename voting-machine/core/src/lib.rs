@@ -14,7 +14,7 @@
 
 #![cfg_attr(not(test), no_std)]
 
-use risc0_zkvm_core::Digest;
+use risc0_zkp::core::sha::Digest;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

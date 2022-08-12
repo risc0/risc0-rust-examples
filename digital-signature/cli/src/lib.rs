@@ -14,8 +14,8 @@
 
 pub use digital_signature_core::{Message, Passphrase, SignMessageCommit, SigningRequest};
 use digital_signature_methods::{SIGN_ID, SIGN_PATH};
-use risc0_zkvm_host::{Prover, Receipt, Result};
-use risc0_zkvm_serde::{from_slice, to_vec};
+use risc0_zkvm::host::{Prover, Receipt, Result};
+use risc0_zkvm::serde::{from_slice, to_vec};
 use sha2::{Digest, Sha256};
 
 pub struct SignatureWithReceipt {
@@ -28,7 +28,7 @@ impl SignatureWithReceipt {
         Ok(from_slice(msg.as_slice()).unwrap())
     }
 
-    pub fn get_identity(&self) -> Result<risc0_zkvm_core::Digest> {
+    pub fn get_identity(&self) -> Result<risc0_zkp::core::sha::Digest> {
         let commit = self.get_commit().unwrap();
         Ok(commit.identity)
     }

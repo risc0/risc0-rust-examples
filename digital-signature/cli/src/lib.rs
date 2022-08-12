@@ -88,11 +88,11 @@ mod tests {
         let signing_receipt = sign(pass_str, msg_str);
         let signing_receipt = match signing_receipt {
             Ok(signing_receipt) => signing_receipt,
-            Err(err) => panic!("Problem generating receipt: {:?}", err)
+            Err(err) => panic!("Problem generating receipt: {:?}", err),
         };
         match signing_receipt.verify() {
-            Ok(_) => {},
-            Err(err) => panic!("Problem verifying receipt: {:?}", err)
+            Ok(_) => {}
+            Err(err) => panic!("Problem verifying receipt: {:?}", err),
         };
 
         let mut msg_hasher = Sha256::new();
@@ -103,7 +103,7 @@ mod tests {
         let message = signing_receipt.get_message();
         let message = match message {
             Ok(message) => message,
-            Err(err) => panic!("Problem getting message: {:?}", err)
+            Err(err) => panic!("Problem getting message: {:?}", err),
         };
         assert_eq!(msg_hash, message.msg);
 

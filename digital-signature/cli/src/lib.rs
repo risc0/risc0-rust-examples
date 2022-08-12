@@ -29,12 +29,12 @@ impl SignatureWithReceipt {
     }
 
     pub fn get_identity(&self) -> Result<risc0_zkp::core::sha::Digest> {
-        let commit = self.get_commit().unwrap();
+        let commit = self.get_commit()?;
         Ok(commit.identity)
     }
 
     pub fn get_message(&self) -> Result<Message> {
-        let commit = self.get_commit().unwrap();
+        let commit = self.get_commit()?;
         Ok(commit.msg)
     }
 
@@ -63,7 +63,7 @@ pub fn sign(pass_str: impl AsRef<[u8]>, msg_str: impl AsRef<[u8]>) -> Result<Sig
         msg: msg,
     };
 
-    let mut prover = Prover::new(&std::fs::read(SIGN_PATH).unwrap(), SIGN_ID).unwrap();
+    let mut prover = Prover::new(&std::fs::read(SIGN_PATH).unwrap(), SIGN_ID)?;
     let vec = to_vec(&params).unwrap();
     prover.add_input(vec.as_slice())?;
     let receipt = prover.run()?;
@@ -85,17 +85,29 @@ mod tests {
     fn protocol() {
         let pass_str = "passphr4ase";
         let msg_str = "This message was signed by me";
-        let signing_receipt = sign(pass_str, msg_str).unwrap();
-        signing_receipt.verify().unwrap();
+        let signing_receipt = sign(pass_str, msg_str);
+        let signing_receipt = match signing_receipt {
+            Ok(signing_receipt) => signing_receipt,
+            Err(err) => panic!("Problem generating receipt: {:?}", err)
+        };
+        match signing_receipt.verify() {
+            Ok(_) => {},
+            Err(err) => panic!("Problem verifying receipt: {:?}", err)
+        };
 
         let mut msg_hasher = Sha256::new();
         msg_hasher.update(msg_str);
         let mut msg_hash = [0u8; 32];
         msg_hash.copy_from_slice(&msg_hasher.finalize());
 
-        assert_eq!(msg_hash, signing_receipt.get_message().unwrap().msg);
+        let message = signing_receipt.get_message();
+        let message = match message {
+            Ok(message) => message,
+            Err(err) => panic!("Problem getting message: {:?}", err)
+        };
+        assert_eq!(msg_hash, message.msg);
 
         log::info!("msg: {:?}", &msg_str);
-        log::info!("commit: {:?}", &signing_receipt.get_commit().unwrap());
+        log::info!("commit: {:?}", &message);
     }
 }

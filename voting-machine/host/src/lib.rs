@@ -81,7 +81,7 @@ impl PollingStation {
 
     pub fn init(&self) -> Result<InitMessage> {
         log::info!("init");
-        let mut prover = Prover::new(INIT_PATH, INIT_ID)?;
+        let mut prover = Prover::new(&std::fs::read(INIT_PATH).unwrap(), INIT_ID).unwrap();
         let vec = to_vec(&self.state).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;
@@ -91,7 +91,7 @@ impl PollingStation {
     pub fn submit(&mut self, ballot: &Ballot) -> Result<SubmitBallotMessage> {
         log::info!("submit: {:?}", ballot);
         let params = SubmitBallotParams::new(self.state.clone(), ballot.clone());
-        let mut prover = Prover::new(SUBMIT_PATH, SUBMIT_ID)?;
+        let mut prover = Prover::new(&std::fs::read(SUBMIT_PATH).unwrap(), SUBMIT_ID).unwrap();
         let vec = to_vec(&params).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;
@@ -106,7 +106,7 @@ impl PollingStation {
     pub fn freeze(&mut self) -> Result<FreezeStationMessage> {
         log::info!("freeze");
         let params = FreezeVotingMachineParams::new(self.state.clone());
-        let mut prover = Prover::new(FREEZE_PATH, FREEZE_ID)?;
+        let mut prover = Prover::new(&std::fs::read(FREEZE_PATH).unwrap(), FREEZE_ID).unwrap();
         let vec = to_vec(&params).unwrap();
         prover.add_input(vec.as_slice())?;
         let receipt = prover.run()?;

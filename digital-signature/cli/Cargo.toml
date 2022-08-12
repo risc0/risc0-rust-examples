@@ -10,7 +10,7 @@ log = "0.4.17"
 digital-signature-methods = { path = "../methods" }
 digital-signature-core = { path = "../core" }
 risc0-zkvm = "0.11.0-rc.4"
-risc0-zkp = { version = "0.11.0-rc.4", default-features = false}
+risc0-zkp = "0.11.0-rc.4"
 serde = "1.0"
 sha2 = "0.10.2"
 

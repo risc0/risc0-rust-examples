@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-risc0-zkvm-core = { version = "0.9", default-features = false, features = ["pure"] }
+risc0-zkp = { version = "0.11.0-rc.4", default-features = false }
 serde = { version = "1.0", default-features = false }

@@ -1,0 +1,11 @@
+{
+    "boolean_field": true,
+    "critical_data": 47,
+    "obj_field": {
+        "string_subfield": "hi there",
+        "array_subfield": [
+            "why",
+            "not"
+        ]
+    }
+}

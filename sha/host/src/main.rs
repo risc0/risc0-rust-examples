@@ -24,5 +24,5 @@ fn main() {
         .expect("Journal should be accessible");
     let digest = from_slice::<Digest>(vec.as_slice()).expect("Journal should contain SHA Digest");
 
-    println!("The hash is {}", digest);
+    println!("I provably know data whose SHA-256 hash is {}", digest);
 }

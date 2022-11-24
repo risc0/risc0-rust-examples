@@ -1,4 +1,3 @@
-// TODO: Update the name of the method loaded by the prover. E.g., if the method is `multiply`, replace `METHOD_NAME_ID` with `MULTIPLY_ID` and replace `METHOD_NAME_PATH` with `MULTIPLY_PATH`
 use methods::{HASH_ID, HASH_PATH};
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::host::Prover;

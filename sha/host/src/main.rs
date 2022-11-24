@@ -7,20 +7,20 @@ use risc0_zkp::core::sha::Digest;
 fn main() {
     // Make the prover.
     let method_code = std::fs::read(HASH_PATH)
-        .expect("Method code should be present at the specified path; did you use the correct *_PATH constant?");
+        .expect("Method code should be present at the specified path");
     let mut prover = Prover::new(&method_code, HASH_ID)
-        .expect("Prover should be constructed from valid method source code and corresponding method ID");
+        .expect("Prover should be constructed from matching code and method ID");
 
-    prover.add_input(&to_vec("abc").unwrap()).unwrap();
+    prover.add_input(&to_vec("abc").expect("abc should serialize")).expect("Prover should accept input");
 
     // Run prover & generate receipt
     let receipt = prover.run()
-        .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");
+        .expect("Code should be provable");
     receipt.verify(HASH_ID)
-        .expect("Code you have proven should successfully verify; did you specify the correct method ID?");
+        .expect("Proven code should verify");
 
-    let vec = receipt.get_journal_vec().unwrap();
-    let digest = from_slice::<Digest>(vec.as_slice()).unwrap();
+    let vec = receipt.get_journal_vec().expect("Journal should be accessible");
+    let digest = from_slice::<Digest>(vec.as_slice()).expect("Journal should contain SHA Digest");
 
     println!("The hash is {}", digest);
 }

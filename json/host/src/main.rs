@@ -6,27 +6,29 @@ use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
 
 fn main() {
-    let mut file = std::fs::File::open("res/example.json").expect("Example file should be accessible");
+    let mut file =
+        std::fs::File::open("res/example.json").expect("Example file should be accessible");
     let mut data = String::new();
-    file.read_to_string(&mut data).expect("Should not have I/O errors");
+    file.read_to_string(&mut data)
+        .expect("Should not have I/O errors");
 
     // Make the prover.
-    let method_code = std::fs::read(SEARCH_JSON_PATH)
-        .expect("Method code should be present at the specified path; did you use the correct *_PATH constant?");
+    let method_code = std::fs::read(SEARCH_JSON_PATH).expect("Method code should be at path");
     let mut prover = Prover::new(&method_code, SEARCH_JSON_ID)
-        .expect("Prover should be constructed from valid method source code and corresponding method ID");
+        .expect("Prover should be constructed from matching method code & ID");
 
     prover.add_input(&to_vec(&data).unwrap()).unwrap();
 
     // Run prover & generate receipt
-    let receipt = prover.run()
-        .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");
+    let receipt = prover.run().expect("Code should be provable");
 
-    // Optional: Verify receipt to confirm that recipients will also be able to verify your receipt
-    receipt.verify(SEARCH_JSON_ID)
-        .expect("Code you have proven should successfully verify; did you specify the correct method ID?");
+    receipt
+        .verify(SEARCH_JSON_ID)
+        .expect("Proven code should verify");
 
-    let journal = &receipt.get_journal_vec().expect("Receipt should have journal");
+    let journal = &receipt
+        .get_journal_vec()
+        .expect("Receipt should have journal");
     let val: u32 = journal[0];
     let digest = from_slice::<Digest>(&journal[1..]).expect("Journal should contain SHA Digest");
 

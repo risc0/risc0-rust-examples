@@ -25,7 +25,6 @@ fn main() {
     receipt.verify(SEARCH_JSON_ID)
         .expect("Code you have proven should successfully verify; did you specify the correct method ID?");
 
-    // TODO: Implement code for transmitting or serializing the receipt for other parties to verify here
     let val: u32 = from_slice(
         &receipt
             .get_journal_vec()

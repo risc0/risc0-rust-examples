@@ -1,3 +1,4 @@
+use clap::{Arg, Command};
 use methods::{HASH_ID, HASH_PATH};
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::host::{Prover, Receipt};
@@ -19,8 +20,14 @@ fn provably_hash(input: &str) -> Receipt {
 }
 
 fn main() {
+    // Parse command line
+    let matches = Command::new("hash")
+        .arg(Arg::new("message").default_value(""))
+        .get_matches();
+    let message = matches.get_one::<String>("message").unwrap();
+
     // Prove hash and verify it
-    let receipt = provably_hash("abc");
+    let receipt = provably_hash(message);
     receipt.verify(HASH_ID).expect("Proven code should verify");
 
     let vec = receipt

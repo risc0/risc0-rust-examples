@@ -1,9 +1,9 @@
 use methods::{HASH_ID, HASH_PATH};
 use risc0_zkp::core::sha::Digest;
-use risc0_zkvm::host::Prover;
+use risc0_zkvm::host::{Prover, Receipt};
 use risc0_zkvm::serde::{from_slice, to_vec};
 
-fn main() {
+fn provably_hash(input: &str) -> Receipt {
     // Make the prover.
     let method_code =
         std::fs::read(HASH_PATH).expect("Method code should be present at the specified path");
@@ -11,11 +11,16 @@ fn main() {
         .expect("Prover should be constructed from matching code and method ID");
 
     prover
-        .add_input(&to_vec("abc").expect("abc should serialize"))
+        .add_input(&to_vec(input).expect("input string should serialize"))
         .expect("Prover should accept input");
 
     // Run prover & generate receipt
-    let receipt = prover.run().expect("Code should be provable");
+    prover.run().expect("Code should be provable")
+}
+
+fn main() {
+    // Prove hash and verify it
+    let receipt = provably_hash("abc");
     receipt.verify(HASH_ID).expect("Proven code should verify");
 
     let vec = receipt
@@ -33,16 +38,11 @@ mod tests {
     use risc0_zkvm::host::Prover;
     use risc0_zkvm::serde::{from_slice, to_vec};
 
+    use crate::provably_hash;
+
     #[test]
     fn main() {
-        let method_code =
-            std::fs::read(HASH_PATH).expect("Method code should be present at the specified path");
-        let mut prover = Prover::new(&method_code, HASH_ID)
-            .expect("Prover should be constructed from matching code and method ID");
-        prover
-            .add_input(&to_vec("abc").expect("abc should serialize"))
-            .expect("Prover should accept input");
-        let receipt = prover.run().expect("Code should be provable");
+        let receipt = provably_hash("abc");
         receipt.verify(HASH_ID).expect("Proven code should verify");
 
         let vec = receipt

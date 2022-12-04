@@ -28,28 +28,19 @@ fn main() {
     };
 
     // Make the prover.
-    let method_code = std::fs::read(CHECKMATE_PATH)
-        .expect("Method code should be present at the specified path; did you use the correct *_PATH constant?");
-    let mut prover = Prover::new(&method_code, CHECKMATE_ID).expect(
-        "Prover should be constructed from valid method source code and corresponding method ID",
-    );
+    let method_code = std::fs::read(CHECKMATE_PATH).unwrap();
+    let mut prover = Prover::new(&method_code, CHECKMATE_ID).unwrap();
 
     prover
-        .add_input(&to_vec(&inputs).expect("input string should serialize"))
-        .expect("Prover should accept input");
+        .add_input(&to_vec(&inputs).unwrap()).unwrap();
 
     // Run prover & generate receipt
-    let receipt = prover.run()
-        .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");
+    let receipt = prover.run().expect("Legal board state and checkmating move expected");
 
     // Verify receipt and parse it for committed data
-    receipt.verify(CHECKMATE_ID).expect(
-        "Code you have proven should successfully verify; did you specify the correct method ID?",
-    );
-    let vec = receipt
-        .get_journal_vec()
-        .expect("Journal should be accessible");
-    let committed_state: String = from_slice(&vec).expect("Journal should contain a FEN String");
+    receipt.verify(CHECKMATE_ID).unwrap();
+    let vec = receipt.get_journal_vec().unwrap();
+    let committed_state: String = from_slice(&vec).unwrap();
     assert_eq!(inputs.board, committed_state);
     let fen = Fen::from_ascii(committed_state.as_bytes()).unwrap();
     let setup = Setup::from(fen);

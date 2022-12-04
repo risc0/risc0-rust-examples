@@ -18,6 +18,7 @@ jobs:
           - digital-signature
           - json
           - password-checker
+          - sha
           - voting-machine
         os: [Linux, macOS]
     runs-on: [self-hosted, "${{ matrix.os }}"]

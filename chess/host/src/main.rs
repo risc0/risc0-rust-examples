@@ -20,7 +20,7 @@ fn main() {
             .get_matches();
     let mv = matches.get_one::<String>("move").unwrap();
     let mut initial_state = matches.get_one::<String>("board").unwrap().to_string();
-    pad_to_word(&mut initial_state);
+    // pad_to_word(&mut initial_state);
 
     let inputs = Inputs {
         board: initial_state,

@@ -16,6 +16,7 @@ jobs:
       matrix:
         project:
           - digital-signature
+          - factors
           - json
           - password-checker
           - sha

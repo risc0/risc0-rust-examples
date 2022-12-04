@@ -16,6 +16,7 @@ jobs:
       matrix:
         project:
           - digital-signature
+          - json
           - password-checker
           - voting-machine
         os: [Linux, macOS]

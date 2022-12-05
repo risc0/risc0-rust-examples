@@ -17,6 +17,7 @@ jobs:
         project:
           - chess
           - digital-signature
+          - factors
           - json
           - password-checker
           - sha

@@ -686,6 +686,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
+name = "json-core"
+version = "0.1.0"
+dependencies = [
+ "risc0-zkp",
+ "serde",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1441,6 +1449,7 @@ name = "starter"
 version = "0.1.0"
 dependencies = [
  "json",
+ "json-core",
  "methods",
  "risc0-zkp",
  "risc0-zkvm",

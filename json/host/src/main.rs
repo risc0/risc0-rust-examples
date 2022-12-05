@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 
-use methods::{SEARCH_JSON_ID, SEARCH_JSON_PATH};
 use json_core::Outputs;
+use methods::{SEARCH_JSON_ID, SEARCH_JSON_PATH};
 use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
 

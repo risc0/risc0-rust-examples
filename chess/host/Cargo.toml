@@ -1,0 +1,12 @@
+[package]
+name = "chess-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "4.0"
+shakmaty = "0.22"
+methods = { path = "../methods" }
+risc0-zkvm = "0.11"
+serde = "1.0"
+chess-core = { path = "../core" }

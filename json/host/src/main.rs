@@ -11,6 +11,11 @@ fn main() {
     let mut data = String::new();
     file.read_to_string(&mut data)
         .expect("Should not have I/O errors");
+    let mut file2 =
+        std::fs::File::open("res/example.json").expect("Example file should be accessible");
+    let mut data2 = String::new();
+    file2.read_to_string(&mut data2)
+        .expect("Should not have I/O errors");
 
     // Make the prover.
     let method_code = std::fs::read(SEARCH_JSON_PATH).expect("Method code should be at path");
@@ -18,6 +23,7 @@ fn main() {
         .expect("Prover should be constructed from matching method code & ID");
 
     prover.add_input(&to_vec(&data).unwrap()).unwrap();
+    prover.add_input(&to_vec(&data2).unwrap()).unwrap();
 
     // Run prover & generate receipt
     let receipt = prover.run().expect("Code should be provable");
@@ -31,5 +37,5 @@ fn main() {
         .expect("Receipt should have journal");
     let outputs: Outputs = from_slice(&journal).expect("Journal should contain an Outputs object");
 
-    println!("\nThe JSON file with hash\n  {}\nprovably contains a field 'critical_data' with value {}\n", outputs.hash, outputs.data);
+    println!("\nThe JSON files with these hashes share 'critical_data' value {}\n{}\n", outputs.hash, outputs.hash2);
 }

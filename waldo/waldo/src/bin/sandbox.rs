@@ -36,10 +36,24 @@ impl PartialOrd for Node {
 
 impl AsRef<[u8]> for Node {
     fn as_ref(&self) -> &[u8] {
-        // NOTE: On my machine, Intel x86_64, this results in a value that does not match the
-        // canoncial SHA2-256 hash function. If the u32 values were to be stored in big endian
-        // format, this would match. See below for an example.
+        // NOTE: On Intel x86_64, this results in a value that does not match the canoncial
+        // SHA2-256 hash function. If the u32 values were to be stored in big endian format, this
+        // would match. See below for an example.
         bytemuck::bytes_of(self)
+    }
+}
+
+impl Node {
+    // Constructs the byte array digest value from big endian representation of the u32 words.
+    // NOTE: I tested this on my (little endian) x86 machine. Have not tested it on a big endian
+    // machine.
+    fn to_be_bytes(&self) -> [u8; size_of::<Self>()] {
+        let mut value = [0u8; size_of::<Self>()];
+        for i in 0..DIGEST_WORDS {
+            value[i * DIGEST_WORD_SIZE..(i + 1) * DIGEST_WORD_SIZE]
+                .copy_from_slice(&self.0.get()[i].to_be_bytes());
+        }
+        value
     }
 }
 
@@ -128,8 +142,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     rc_hasher.update(test_string);
     let rc_hash: &[u8] = &rc_hasher.finalize()[..];
 
-    println!("r0_hash: {}", hex::encode(r0_hash));
-    println!("rc_hash: {}", hex::encode(rc_hash));
+    println!("r0_hash       : {}", hex::encode(r0_hash));
+    println!("r0_hash as be : {}", hex::encode(r0_node.to_be_bytes()));
+    println!("rc_hash       : {}", hex::encode(rc_hash));
 
     Ok(())
 }

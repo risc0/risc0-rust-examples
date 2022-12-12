@@ -6,14 +6,17 @@ use std::error::Error;
 use std::hash::Hasher;
 use std::mem::size_of;
 
-use merkletree::hash::Algorithm;
-use merkletree::merkle::{Element, MerkleTree};
+use bytemuck::{Pod, Zeroable};
+use merkle_light::hash::Algorithm;
+use merkle_light::merkle::MerkleTree;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
+use risc0_zkp::core::sha_cpu;
 
 // Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable)]
+#[repr(transparent)]
 pub struct Node(Digest);
 
 const_assert_eq!(size_of::<Node>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
@@ -33,15 +36,10 @@ impl PartialOrd for Node {
 
 impl AsRef<[u8]> for Node {
     fn as_ref(&self) -> &[u8] {
-        // DO NOT MERGE: Verify that A) this works on by computer and B) it will work on other
-        // computers. I believe one or both of these may be wrong.
-        // bytemuck::bytes_of(self)
-        let mut value = [0u8; size_of::<Self>()];
-        for i in 0..DIGEST_WORDS {
-            // TODO: Check that BE is the right byte order.
-            value[i..i + DIGEST_WORD_SIZE].copy_from_slice(&self.0.get()[i].to_be_bytes());
-        }
-        &value
+        // NOTE: On my machine, Intel x86_64, this results in a value that does not match the
+        // canoncial SHA2-256 hash function. If the u32 values were to be stored in big endian
+        // format, this would match. See below for an example.
+        bytemuck::bytes_of(self)
     }
 }
 
@@ -51,38 +49,16 @@ impl From<Digest> for Node {
     }
 }
 
-impl Element for Node {
-    fn byte_len() -> usize {
-        size_of::<Self>()
-    }
-
-    fn from_slice(bytes: &[u8]) -> Self {
-        let mut words = [0u32; DIGEST_WORDS];
-        for i in 0..DIGEST_WORDS {
-            // TODO: Check that BE is the right byte order.
-            words[i] = u32::from_be_bytes(
-                bytes[i..i + DIGEST_WORD_SIZE]
-                    .try_into()
-                    .expect("conversion of bytes into a digest word failed"),
-            );
-        }
-        // NOTE: Nicer if there was a way to construct a digest from words without copying.
-        Self(Digest::from_slice(&words))
-    }
-
-    fn copy_to_slice(&self, bytes: &mut [u8]) {
-        for i in 0..DIGEST_WORDS {
-            // TODO: Check that BE is the right byte order.
-            bytes[i..i + DIGEST_WORD_SIZE].copy_from_slice(&self.0.get()[i].to_be_bytes());
-        }
+impl Into<Digest> for Node {
+    fn into(self) -> Digest {
+        self.0
     }
 }
 
+// Enable the random generation of nodes for testing an development.
 impl Distribution<Node> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
-        Node::from(Digest::from_slice(
-            &rand::thread_rng().gen::<[u32; DIGEST_WORDS]>(),
-        ))
+        Node::from(Digest::from_slice(&rng.gen::<[u32; DIGEST_WORDS]>()))
     }
 }
 
@@ -96,7 +72,7 @@ where
 
 // NOTE: It would be nice if Sha structs (or the trait) implemented Default.
 // Since it doesn't we need to impl default per struct implementation.
-impl Default for ShaHasher<risc0_zkp::core::sha_cpu::Impl> {
+impl Default for ShaHasher<sha_cpu::Impl> {
     fn default() -> Self {
         Self {
             data: Vec::new(),
@@ -134,8 +110,26 @@ fn random_elements(elems: usize) -> Vec<Node> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    println!("===== construct a Merkle tree =====");
     let elements = random_elements(1 << 10);
-    let tree = MerkleTree::new(elements)?;
+    let tree = MerkleTree::<_, ShaHasher<sha_cpu::Impl>>::new(elements);
     println!("Created a merkle tree with {} elements", tree.len());
+    println!("");
+
+    println!("===== check consistency of r0 sha2 impl with RustCrypto =====");
+    let test_string: &'static str = "RISCO SHA hasher test string";
+    let mut r0_hasher = ShaHasher::<sha_cpu::Impl>::default();
+    r0_hasher.write(test_string.as_bytes());
+    let r0_node = r0_hasher.hash();
+    let r0_hash: &[u8] = r0_node.as_ref();
+
+    use sha2::Digest;
+    let mut rc_hasher = sha2::Sha256::new();
+    rc_hasher.update(test_string);
+    let rc_hash: &[u8] = &rc_hasher.finalize()[..];
+
+    println!("r0_hash: {}", hex::encode(r0_hash));
+    println!("rc_hash: {}", hex::encode(rc_hash));
+
     Ok(())
 }

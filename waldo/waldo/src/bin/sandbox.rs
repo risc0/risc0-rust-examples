@@ -7,9 +7,8 @@ use std::hash::Hasher;
 use std::mem::size_of;
 
 use bytemuck::{Pod, Zeroable};
-use merkle_light::hash::Algorithm;
+use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::merkle::MerkleTree;
-use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
@@ -69,13 +68,6 @@ impl Into<Digest> for Node {
     }
 }
 
-// Enable the random generation of nodes for testing an development.
-impl Distribution<Node> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
-        Node::from(Digest::from_slice(&rng.gen::<[u32; DIGEST_WORDS]>()))
-    }
-}
-
 struct ShaHasher<H>
 where
     H: Sha + 'static,
@@ -117,18 +109,39 @@ where
     }
 }
 
-fn random_elements(elems: usize) -> Vec<Node> {
-    (0..elems)
+fn random_items(items: usize) -> Vec<u64> {
+    (0..items)
         .map(|_| rand::thread_rng().gen())
         .collect::<Vec<_>>()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("===== construct a Merkle tree =====");
-    let elements = random_elements(1 << 10);
-    let tree = MerkleTree::<_, ShaHasher<sha_cpu::Impl>>::new(elements);
-    println!("Created a merkle tree with {} elements", tree.len());
+    let items = random_items(1 << 10);
+    let tree = MerkleTree::<_, ShaHasher<sha_cpu::Impl>>::from_data(&items);
+    println!("Created a merkle tree with {} nodes", tree.len());
     println!("");
+
+    println!("====+ check a Merkle proof for some item in the tree =====");
+    let proof = tree.gen_proof(47);
+    assert!(proof.validate::<ShaHasher<sha_cpu::Impl>>());
+    assert_eq!(proof.root(), tree.root());
+    assert_eq!(&proof.item(), &tree[47]);
+
+    // Example of how to check the Merkle proof against the value of a given item.
+    // Item value in the Merkle proof is a lead hash. Calculating a leaf hash is done in two steps.
+    // Step one is to hash the item itself, and step two is to hash the hash with a leaf prefix.
+    assert_eq!(proof.item(), {
+        // Hash the item value.
+        let item = &items[47];
+        let algorithm = &mut ShaHasher::<sha_cpu::Impl>::default();
+        item.hash(algorithm);
+        let item_hash = algorithm.hash();
+
+        // Hash the hash of the item value to get the leaf.
+        algorithm.reset();
+        algorithm.leaf(item_hash)
+    });
 
     println!("===== check consistency of r0 sha2 impl with RustCrypto =====");
     let test_string: &'static str = "RISCO SHA hasher test string";

@@ -7,7 +7,7 @@ use std::mem::size_of;
 
 use bytemuck::{Pod, Zeroable};
 use merkle_light::hash::Algorithm;
-use merkle_light::merkle;
+use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
 #[cfg(feature = "zkvm")]
@@ -24,7 +24,11 @@ cfg_if::cfg_if! {
 
 /// MerkleTree is a type alias for the merkle_light struct, instanciated with the appropriate hash
 /// function for use in either the zkVM guest or on the host.
-pub type MerkleTree = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;
+pub type MerkleTree = merkle::MerkleTree<Node, ShaHasher>;
+
+/// Proof is a type alias for the merkle_light struct, instanciated with the appropriate hash
+/// function for use in either the zkVM guest or on the host.
+pub type Proof = proof::Proof<ShaHasher>;
 
 // Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable)]
@@ -85,7 +89,7 @@ impl Into<Digest> for Node {
 
 /// ShaHasher is a wrapper around the RISC0 SHA2-256 implementations that implements the Algorithm
 /// trait for use with the merkle_light package.
-pub struct ShaHasher<H>
+pub struct ShaHasher<H = ShaImpl>
 where
     H: Sha + 'static,
 {
@@ -154,7 +158,7 @@ mod test {
         assert_eq!(tree.len(), 2047);
 
         let proof = tree.gen_proof(47);
-        assert!(proof.validate::<ShaHasher<ShaImpl>>());
+        assert!(proof.validate::<ShaHasher>());
         assert_eq!(proof.root(), tree.root());
         assert_eq!(&proof.item(), &tree[47]);
 
@@ -164,7 +168,7 @@ mod test {
         assert_eq!(proof.item(), {
             // Hash the item value.
             let item = &items[47];
-            let algorithm = &mut ShaHasher::<ShaImpl>::default();
+            let algorithm = &mut ShaHasher::default();
             item.hash(algorithm);
             let item_hash = algorithm.hash();
 
@@ -177,7 +181,7 @@ mod test {
     #[test]
     fn algorithm_is_consistent_with_sha2() {
         let test_string: &'static str = "RISCO SHA hasher test string";
-        let mut r0_hasher = ShaHasher::<ShaImpl>::default();
+        let mut r0_hasher = ShaHasher::default();
         r0_hasher.write(test_string.as_bytes());
         let r0_node = r0_hasher.hash();
 

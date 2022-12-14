@@ -7,7 +7,7 @@ use rand::RngCore;
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
-use waldo_core::{MerkleTree, Node};
+use waldo_core::merkle::{MerkleTree, Node};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {

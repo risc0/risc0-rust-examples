@@ -3,7 +3,7 @@
 
 use merkle_light::hash::{Algorithm, Hashable};
 use risc0_zkvm_guest::env;
-use waldo_core::{Node, Proof, ShaHasher, ShaImpl};
+use waldo_core::merkle::{Node, Proof, ShaHasher, ShaImpl};
 
 risc0_zkvm_guest::entry!(main);
 
@@ -41,7 +41,6 @@ pub fn main() {
     let proof = Proof::new(lemma, path);
     let root = proof.root();
 
-    // TODO: Verify that the claimed value is actually the value committed in the proof.
     assert!(verify_merkle_opening(&root, &proof, value));
 
     env::commit(&root);

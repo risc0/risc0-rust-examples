@@ -3,12 +3,12 @@ use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 
 use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
-use merkle::MerkleTree;
-use methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 use rand::RngCore;
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use waldo_core::{MerkleTree, Node};
+use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {
     /*
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     rand::thread_rng().fill_bytes(&mut img_bytes);
 
     // Create a Merkle tree over the image bytes.
-    let img_bytes_merkle_tree = MerkleTree::from_data(img_bytes);
+    let img_bytes_merkle_tree = MerkleTree::from_data(&img_bytes);
 
     // Make the prover, loading the image crop method binary and method ID.
     let method_code = std::fs::read(IMAGE_CROP_PATH)
@@ -40,17 +40,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         .expect("Prover should be constructed from matching code and method ID");
 
     println!(
-        "Created Merkle tree with height: {}",
-        img_bytes_merkle_tree.height()
+        "Created Merkle tree with root {:?} and {} leaves",
+        img_bytes_merkle_tree.root(),
+        img_bytes_merkle_tree.leafs(),
     );
 
     // Send the merkle proof to the guest.
     // TODO: Implement a nicer way for proofs to be serialized and deserialized.
     let index = 157;
     let merkle_proof = img_bytes_merkle_tree.gen_proof(index);
-    prover.add_input(&to_vec(&merkle_proof.lemma())?)?
-    prover.add_input(&to_vec(&merkle_proof.path())?)?
-    prover.add_input(&to_vec(&img_bytes[index])?)?
+    prover.add_input(&to_vec(&merkle_proof.lemma())?)?;
+    prover.add_input(&to_vec(&merkle_proof.path())?)?;
+    prover.add_input(&to_vec(&img_bytes[index])?)?;
 
     // Run prover & generate receipt
     let receipt = prover.run().expect("Code should be provable");
@@ -64,10 +65,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .get_journal_vec()
         .expect("Journal should be accessible");
 
-    let digest = from_slice::<Vec<bool>>(journal_vec.as_slice())
-        .expect("Journal should contain a Merkle path");
+    let (root, value) = from_slice::<(Node, u8)>(journal_vec.as_slice())
+        .expect("Journal should contain a byte value");
 
-    println!("I provably know data whose SHA-256 hash is {:?}", digest);
+    println!(
+        "Verified that {:?} is a member of a Merkle tree with root: {}",
+        root, value,
+    );
 
     Ok(())
     /*

@@ -1,13 +1,13 @@
 [package]
-name = "waldo"
+name = "waldo-host"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 image = { version = "0.24.5", features = ["webp", "png", "bmp"], default-features = false }
-merkle = { path = "../merkle" }
-methods = { path = "../methods" }
 rand = "0.8.5"
 risc0-zkp = "0.11"
 risc0-zkvm = "0.11"
 serde = "1.0"
+waldo-core = { path = "../core" }
+waldo-methods = { path = "../methods" }

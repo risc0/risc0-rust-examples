@@ -12,6 +12,7 @@ use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
 #[cfg(feature = "zkvm")]
 use risc0_zkvm_guest as guest;
+use serde::{Deserialize, Serialize};
 
 // Pick the appropriate implementation of SHA2-256 depending on whether we are in the zkVM guest.
 cfg_if::cfg_if! {
@@ -28,10 +29,12 @@ pub type MerkleTree = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;
 
 /// Proof is a type alias for the merkle_light struct, instanciated with the appropriate hash
 /// function for use in either the zkVM guest or on the host.
-pub type Proof = proof::Proof<ShaHasher<ShaImpl>>;
+// NOTE: It would be much nicer if the proof type included some indication of the hashing algorithm
+// in use instead of having to pass it to validate.
+pub type Proof = proof::Proof<Node>;
 
 // Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct Node(Digest);
 

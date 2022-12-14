@@ -3,6 +3,7 @@ use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 
 use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
+use merkle::MerkleTree;
 use methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 use rand::RngCore;
 use risc0_zkp::core::sha::Digest;
@@ -29,16 +30,27 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut img_bytes = vec![0u8; 1 << 15];
     rand::thread_rng().fill_bytes(&mut img_bytes);
 
-    // Make the prover.
+    // Create a Merkle tree over the image bytes.
+    let img_bytes_merkle_tree = MerkleTree::from_data(img_bytes);
+
+    // Make the prover, loading the image crop method binary and method ID.
     let method_code = std::fs::read(IMAGE_CROP_PATH)
         .expect("Method code should be present at the specified path");
     let mut prover = Prover::new(&method_code, IMAGE_CROP_ID)
         .expect("Prover should be constructed from matching code and method ID");
 
-    // Send the image to the guest.
-    prover
-        .add_input(&to_vec(&img_bytes)?)
-        .expect("Prover should accept input");
+    println!(
+        "Created Merkle tree with height: {}",
+        img_bytes_merkle_tree.height()
+    );
+
+    // Send the merkle proof to the guest.
+    // TODO: Implement a nicer way for proofs to be serialized and deserialized.
+    let index = 157;
+    let merkle_proof = img_bytes_merkle_tree.gen_proof(index);
+    prover.add_input(&to_vec(&merkle_proof.lemma())?)?
+    prover.add_input(&to_vec(&merkle_proof.path())?)?
+    prover.add_input(&to_vec(&img_bytes[index])?)?
 
     // Run prover & generate receipt
     let receipt = prover.run().expect("Code should be provable");
@@ -51,10 +63,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let journal_vec = receipt
         .get_journal_vec()
         .expect("Journal should be accessible");
-    let digest =
-        from_slice::<Digest>(journal_vec.as_slice()).expect("Journal should contain SHA Digest");
 
-    println!("I provably know data whose SHA-256 hash is {}", digest);
+    let digest = from_slice::<Vec<bool>>(journal_vec.as_slice())
+        .expect("Journal should contain a Merkle path");
+
+    println!("I provably know data whose SHA-256 hash is {:?}", digest);
 
     Ok(())
     /*

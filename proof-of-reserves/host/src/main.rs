@@ -1,9 +1,10 @@
 // TODO: Update the name of the method loaded by the prover. E.g., if the method is `multiply`, replace `METHOD_NAME_ID` with `MULTIPLY_ID` and replace `METHOD_NAME_PATH` with `MULTIPLY_PATH`
-use bitcoin::util::address::Address;
+use bitcoin::util::{address::Address, key::PublicKey};
+use bitcoin::blockdata::{script::Script, transaction::TxOut};
 use methods::{METHOD_NAME_ID, METHOD_NAME_PATH};
 use risc0_zkvm::Prover;
 // use risc0_zkvm::serde::{from_slice, to_vec};
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use secp256k1::{Secp256k1, SecretKey};
 
 fn main() {
     // Make the prover.
@@ -28,18 +29,30 @@ fn main() {
 }
 
 fn private_key_to_address(private_key: String) -> Address {
+    let bitcoin_public_key = public_key_from_private_key(private_key);
+
+    bitcoin::util::address::Address::p2pkh(
+        &bitcoin_public_key,
+        bitcoin::network::constants::Network::Bitcoin,
+    )
+}
+
+fn public_key_from_private_key(private_key: String) -> PublicKey {
     let private_key_bytes = hex::decode(private_key).unwrap();
 
     let secp = Secp256k1::new();
     let secret_key =
         SecretKey::from_slice(&private_key_bytes).expect("32 bytes, within curve order");
-    let public_key = PublicKey::from_secret_key(&secp, &secret_key);
+    PublicKey::new(secp256k1::PublicKey::from_secret_key(&secp, &secret_key))
+}
 
-    let bitcoin_public_key = bitcoin::util::key::PublicKey::new(public_key);
-    bitcoin::util::address::Address::p2pkh(
-        &bitcoin_public_key,
-        bitcoin::network::constants::Network::Bitcoin,
-    )
+fn verify_ownership(txout: TxOut, private_key: String) -> Result<(), ()> {
+    let public_key = public_key_from_private_key(private_key);
+
+    if txout.script_pubkey != Script::new_p2pkh(&public_key.pubkey_hash()) {
+        return Err(());
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -52,5 +65,21 @@ mod tests {
             "18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725".to_string();
         let address = private_key_to_address(private_key);
         assert_eq!(address.to_string(), "1PMycacnJaSqwwJqjawXBErnLsZ7RkXUAs");
+    }
+
+    #[test]
+    fn verify_txout_ownership_works() {
+        let private_key =
+            "18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725".to_string();
+        let public_key = public_key_from_private_key(private_key.clone());
+        let pubkey_hash = public_key.pubkey_hash();
+        let txout = TxOut {
+            value: 47,
+            script_pubkey: Script::new_p2pkh(&pubkey_hash)
+        };
+        // Ownership successfully verifies
+        verify_ownership(txout.clone(), private_key).unwrap();
+        // Ownership fails verification
+        assert_eq!(verify_ownership(txout, "00004A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725".to_string()), Err(()));
     }
 }

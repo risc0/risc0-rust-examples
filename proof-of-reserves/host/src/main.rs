@@ -1,7 +1,7 @@
 // TODO: Update the name of the method loaded by the prover. E.g., if the method is `multiply`, replace `METHOD_NAME_ID` with `MULTIPLY_ID` and replace `METHOD_NAME_PATH` with `MULTIPLY_PATH`
 use bitcoin::util::address::Address;
 use methods::{METHOD_NAME_ID, METHOD_NAME_PATH};
-use risc0_zkvm::host::Prover;
+use risc0_zkvm::Prover;
 // use risc0_zkvm::serde::{from_slice, to_vec};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 

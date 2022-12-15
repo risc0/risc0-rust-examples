@@ -1,7 +1,9 @@
 // TODO: Update the name of the method loaded by the prover. E.g., if the method is `multiply`, replace `METHOD_NAME_ID` with `MULTIPLY_ID` and replace `METHOD_NAME_PATH` with `MULTIPLY_PATH`
+use bitcoin::util::address::Address;
 use methods::{METHOD_NAME_ID, METHOD_NAME_PATH};
 use risc0_zkvm::host::Prover;
 // use risc0_zkvm::serde::{from_slice, to_vec};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 fn main() {
     // Make the prover.
@@ -23,4 +25,32 @@ fn main() {
     );
 
     // TODO: Implement code for transmitting or serializing the receipt for other parties to verify here
+}
+
+fn private_key_to_address(private_key: String) -> Address {
+    let private_key_bytes = hex::decode(private_key).unwrap();
+
+    let secp = Secp256k1::new();
+    let secret_key =
+        SecretKey::from_slice(&private_key_bytes).expect("32 bytes, within curve order");
+    let public_key = PublicKey::from_secret_key(&secp, &secret_key);
+
+    let bitcoin_public_key = bitcoin::util::key::PublicKey::new(public_key);
+    bitcoin::util::address::Address::p2pkh(
+        &bitcoin_public_key,
+        bitcoin::network::constants::Network::Bitcoin,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn private_key_to_public_key_works() {
+        let private_key =
+            "18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725".to_string();
+        let address = private_key_to_address(private_key);
+        assert_eq!(address.to_string(), "1PMycacnJaSqwwJqjawXBErnLsZ7RkXUAs");
+    }
 }

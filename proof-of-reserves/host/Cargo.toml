@@ -7,3 +7,7 @@ edition = "2021"
 methods = { path = "../methods" }
 risc0-zkvm = { git = "ssh://git@github.com/risc0/risc0.git", rev = "9a3865a5a54ec1e974250c785545a6bf727f6949" }
 serde = "1.0"
+secp256k1 = "0.24.0"
+hex = "0.4.3"
+bs58 = "0.4.0"
+bitcoin = "0.29.2"

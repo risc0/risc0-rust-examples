@@ -6,7 +6,8 @@ edition = "2021"
 [workspace]
 
 [build-dependencies]
-risc0-build = "0.11"
+risc0-build = { git = "ssh://git@github.com/risc0/risc0.git", rev = "9a3865a5a54ec1e974250c785545a6bf727f6949" }
 
 [dependencies]
-risc0-zkvm-guest = "0.11"
+# Guest
+risc0-zkvm = { git = "ssh://git@github.com/risc0/risc0.git", rev = "9a3865a5a54ec1e974250c785545a6bf727f6949", default_features = false }

@@ -20,6 +20,7 @@ jobs:
           - factors
           - json
           - password-checker
+          - proof-of-reserves
           - sha
           - voting-machine
         os: [Linux, macOS]

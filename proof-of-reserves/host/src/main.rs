@@ -27,6 +27,29 @@ fn main() {
     // TODO: Implement code for transmitting or serializing the receipt for other parties to verify here
 }
 
+// This `derive` requires the `serde` dependency.
+#[derive(Debug, serde::Deserialize)]
+struct MerklePathResponse {
+    result: String,
+}
+
+fn get_tx_out_merkle_proof(tx_hash: String, rpc_url: String) -> String {
+    let client = reqwest::blocking::Client::new();
+    let proof_json_test: String = client
+        .post(rpc_url)
+        .body(format!(
+            "{{\"method\": \"gettxoutproof\", \"params\": [[\"{}\"]]}}",
+            tx_hash
+        ))
+        .send()
+        .unwrap()
+        .text()
+        .unwrap();
+
+    let proof: MerklePathResponse = serde_json::from_str(&proof_json_test).unwrap();
+    proof.result
+}
+
 fn private_key_to_address(private_key: String) -> Address {
     let private_key_bytes = hex::decode(private_key).unwrap();
 

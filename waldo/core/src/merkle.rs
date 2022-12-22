@@ -20,6 +20,8 @@ cfg_if::cfg_if! {
     }
 }
 
+// TODO: Create a wrapped version of the MerkleTree struct that smooths out issues with
+// serialization, type consistency and other issues.
 /// MerkleTree is a type alias for the merkle_light struct, instanciated with the appropriate hash
 /// function for use in either the zkVM guest or on the host.
 pub type MerkleTree = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;

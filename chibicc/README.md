@@ -1,6 +1,6 @@
 # RISC Zero Chibicc
 
-You will need to fetch risc0/chibicc-rs, configure the RISCV toolchain path in that repo, then specify the path on disk to that repo in methods/guest/Cargo.toml
+You will need to fetch `risc0/chibicc-rs.git`, configure the RISCV toolchain path in that repo, then specify the path on disk to that repo in methods/guest/Cargo.toml
 
 Welcome to the RISC Zero Rust Starter Template! This template is intended to give you a starting point for building a project using the RISC Zero zkVM. Throughout the code are comments labelled `TODO` in places where we expect projects will need to modify the code.
 

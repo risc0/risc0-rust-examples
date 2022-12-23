@@ -1,9 +1,11 @@
 use std::cmp::Ordering;
 use std::hash::Hasher;
+use std::marker::PhantomData;
 use std::mem::size_of;
+use std::ops::Deref;
 
 use bytemuck::{Pod, Zeroable};
-use merkle_light::hash::Algorithm;
+use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
@@ -20,19 +22,150 @@ cfg_if::cfg_if! {
     }
 }
 
-// TODO: Create a wrapped version of the MerkleTree struct that smooths out issues with
-// serialization, type consistency and other issues.
-/// MerkleTree is a type alias for the merkle_light struct, instanciated with the appropriate hash
-/// function for use in either the zkVM guest or on the host.
-pub type MerkleTree = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;
+/// Merkle tree for use as a vector commitment over elements of the specified type.
+pub trait MerkleTree<
+    Element: Hashable<Hash>,
+    Hash: Algorithm<Nodeish>,
+    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+>
+{
+    type Proof: Proof<Element, Hash, Nodeish>;
 
-/// Proof is a type alias for the merkle_light struct, instanciated with the appropriate hash
-/// function for use in either the zkVM guest or on the host.
-// NOTE: It would be much nicer if the proof type included some indication of the hashing algorithm
-// in use instead of having to pass it to validate.
-pub type Proof = proof::Proof<Node>;
+    fn prove(&self, i: usize) -> Self::Proof;
+}
 
-// Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
+pub trait Proof<
+    Element: Hashable<Hash>,
+    Hash: Algorithm<Nodeish>,
+    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+>
+{
+    // TOOD: Potentially return a Result type instead of a bool here.
+    fn verify(&self, root: &Nodeish, element: &Element) -> bool;
+}
+
+pub struct MerkleTreeImpl<
+    Element: Hashable<Hash>,
+    Hash: Algorithm<Nodeish>,
+    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+> {
+    inner: merkle::MerkleTree<Nodeish, Hash>,
+    phantom_elem: PhantomData<Element>,
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > Deref for MerkleTreeImpl<Element, Hash, Nodeish>
+{
+    type Target = merkle::MerkleTree<Nodeish, Hash>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > From<merkle::MerkleTree<Nodeish, Hash>> for MerkleTreeImpl<Element, Hash, Nodeish>
+{
+    fn from(inner: merkle::MerkleTree<Nodeish, Hash>) -> Self {
+        Self {
+            inner,
+            phantom_elem: PhantomData,
+        }
+    }
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > MerkleTree<Element, Hash, Nodeish> for MerkleTreeImpl<Element, Hash, Nodeish>
+{
+    type Proof = ProofImpl<Element, Hash, Nodeish>;
+
+    fn prove(&self, i: usize) -> Self::Proof {
+        self.gen_proof(i).into()
+    }
+}
+
+pub struct ProofImpl<
+    Element: Hashable<Hash>,
+    Hash: Algorithm<Nodeish>,
+    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+> {
+    inner: proof::Proof<Nodeish>,
+    phantom_elem: PhantomData<Element>,
+    phantom_hash: PhantomData<Hash>,
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > Deref for ProofImpl<Element, Hash, Nodeish>
+{
+    type Target = proof::Proof<Nodeish>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > From<proof::Proof<Nodeish>> for ProofImpl<Element, Hash, Nodeish>
+{
+    fn from(inner: proof::Proof<Nodeish>) -> Self {
+        Self {
+            inner,
+            phantom_elem: PhantomData,
+            phantom_hash: PhantomData,
+        }
+    }
+}
+
+impl<
+        Element: Hashable<Hash>,
+        Hash: Algorithm<Nodeish>,
+        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    > Proof<Element, Hash, Nodeish> for ProofImpl<Element, Hash, Nodeish>
+{
+    fn verify(&self, root: &Nodeish, element: &Element) -> bool {
+        // Check that the root of the proof matches the provided root.
+        // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
+        // avoids the sharp edge of forgetting to check against a fixed root, but may be less
+        // flexible than it could be.
+        if &self.root() != root {
+            return false;
+        }
+
+        // Check that the path from the leaf matches the root.
+        if !self.validate::<Hash>() {
+            return false;
+        }
+
+        // Check the element hashes to the leaf in the proof.
+        // Hash the element.
+        let algorithm = &mut Hash::default();
+        element.hash(algorithm);
+        let elem_hash = algorithm.hash();
+
+        // Hash the hash of the  element to get the leaf.
+        algorithm.reset();
+        let leaf_hash = algorithm.leaf(elem_hash);
+
+        leaf_hash == self.item()
+    }
+}
+
+/// Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct Node(Digest);
@@ -156,28 +289,13 @@ mod test {
     #[test]
     fn basic_merkle_tree_constuction_works() {
         let items = (0..1 << 10).collect::<Vec<_>>();
-        let tree = MerkleTree::from_data(&items);
+        let tree = MerkleTreeImpl::<u32, _, _>::from(
+            merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(&items),
+        );
         assert_eq!(tree.len(), 2047);
 
-        let proof = tree.gen_proof(47);
-        assert!(proof.validate::<ShaHasher<ShaImpl>>());
-        assert_eq!(proof.root(), tree.root());
-        assert_eq!(&proof.item(), &tree[47]);
-
-        // Example of how to check the Merkle proof against the value of a given item.
-        // Item value in the Merkle proof is a lead hash. Calculating a leaf hash is done in two steps.
-        // Step one is to hash the item itself, and step two is to hash the hash with a leaf prefix.
-        assert_eq!(proof.item(), {
-            // Hash the item value.
-            let item = &items[47];
-            let algorithm = &mut ShaHasher::<ShaImpl>::default();
-            item.hash(algorithm);
-            let item_hash = algorithm.hash();
-
-            // Hash the hash of the item value to get the leaf.
-            algorithm.reset();
-            algorithm.leaf(item_hash)
-        });
+        let proof = tree.prove(47);
+        assert!(proof.verify(&tree.root(), &47));
     }
 
     #[test]

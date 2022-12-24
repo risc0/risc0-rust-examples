@@ -35,6 +35,12 @@ impl<Element> MerkleTree<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
 {
+    pub fn from_elements<I: IntoIterator<Item = Element>>(elements: I) -> Self {
+        Self::from(merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(
+            elements,
+        ))
+    }
+
     pub fn prove(&self, i: usize) -> Proof<Element> {
         self.gen_proof(i).into()
     }
@@ -75,7 +81,7 @@ impl<Element> Proof<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    pub fn verify(&self, root: &Node, element: &Element) -> bool {
+    pub fn verify(&self, root: &Node, element: Element) -> bool {
         // Check that the root of the proof matches the provided root.
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
@@ -243,18 +249,18 @@ where
 
 #[cfg(test)]
 mod test {
+    use rand::Rng;
+
     use super::*;
 
     #[test]
     fn basic_merkle_tree_constuction_works() {
-        let items = (0..1 << 10).collect::<Vec<_>>();
-        let tree = MerkleTree::<u32>::from(merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(
-            &items,
-        ));
+        let items: Vec<u32> = (0..1 << 10).map(|_| rand::thread_rng().gen()).collect();
+        let tree = MerkleTree::<u32>::from_elements(items.iter().copied());
         assert_eq!(tree.len(), 2047);
 
         let proof = tree.prove(47);
-        assert!(proof.verify(&tree.root(), &47));
+        assert!(proof.verify(&tree.root(), items[47]));
     }
 
     #[test]

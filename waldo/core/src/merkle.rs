@@ -25,54 +25,48 @@ cfg_if::cfg_if! {
 /// Merkle tree for use as a vector commitment over elements of the specified type.
 pub trait MerkleTree<
     Element: Hashable<Hash>,
-    Hash: Algorithm<Nodeish>,
-    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    Hash: Algorithm<Node>,
+    Node: Eq + Ord + Clone + AsRef<[u8]>,
 >
 {
-    type Proof: Proof<Element, Hash, Nodeish>;
+    type Proof: Proof<Element, Hash, Node>;
 
     fn prove(&self, i: usize) -> Self::Proof;
 }
 
 pub trait Proof<
     Element: Hashable<Hash>,
-    Hash: Algorithm<Nodeish>,
-    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    Hash: Algorithm<Node>,
+    Node: Eq + Ord + Clone + AsRef<[u8]>,
 >
 {
     // TOOD: Potentially return a Result type instead of a bool here.
-    fn verify(&self, root: &Nodeish, element: &Element) -> bool;
+    fn verify(&self, root: &Node, element: &Element) -> bool;
 }
 
 pub struct MerkleTreeImpl<
     Element: Hashable<Hash>,
-    Hash: Algorithm<Nodeish>,
-    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    Hash: Algorithm<Node>,
+    Node: Eq + Ord + Clone + AsRef<[u8]>,
 > {
-    inner: merkle::MerkleTree<Nodeish, Hash>,
+    inner: merkle::MerkleTree<Node, Hash>,
     phantom_elem: PhantomData<Element>,
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > Deref for MerkleTreeImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>> Deref
+    for MerkleTreeImpl<Element, Hash, Node>
 {
-    type Target = merkle::MerkleTree<Nodeish, Hash>;
+    type Target = merkle::MerkleTree<Node, Hash>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > From<merkle::MerkleTree<Nodeish, Hash>> for MerkleTreeImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
+    From<merkle::MerkleTree<Node, Hash>> for MerkleTreeImpl<Element, Hash, Node>
 {
-    fn from(inner: merkle::MerkleTree<Nodeish, Hash>) -> Self {
+    fn from(inner: merkle::MerkleTree<Node, Hash>) -> Self {
         Self {
             inner,
             phantom_elem: PhantomData,
@@ -80,13 +74,10 @@ impl<
     }
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > MerkleTree<Element, Hash, Nodeish> for MerkleTreeImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
+    MerkleTree<Element, Hash, Node> for MerkleTreeImpl<Element, Hash, Node>
 {
-    type Proof = ProofImpl<Element, Hash, Nodeish>;
+    type Proof = ProofImpl<Element, Hash, Node>;
 
     fn prove(&self, i: usize) -> Self::Proof {
         self.gen_proof(i).into()
@@ -95,34 +86,28 @@ impl<
 
 pub struct ProofImpl<
     Element: Hashable<Hash>,
-    Hash: Algorithm<Nodeish>,
-    Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
+    Hash: Algorithm<Node>,
+    Node: Eq + Ord + Clone + AsRef<[u8]>,
 > {
-    inner: proof::Proof<Nodeish>,
+    inner: proof::Proof<Node>,
     phantom_elem: PhantomData<Element>,
     phantom_hash: PhantomData<Hash>,
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > Deref for ProofImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>> Deref
+    for ProofImpl<Element, Hash, Node>
 {
-    type Target = proof::Proof<Nodeish>;
+    type Target = proof::Proof<Node>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > From<proof::Proof<Nodeish>> for ProofImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
+    From<proof::Proof<Node>> for ProofImpl<Element, Hash, Node>
 {
-    fn from(inner: proof::Proof<Nodeish>) -> Self {
+    fn from(inner: proof::Proof<Node>) -> Self {
         Self {
             inner,
             phantom_elem: PhantomData,
@@ -131,13 +116,10 @@ impl<
     }
 }
 
-impl<
-        Element: Hashable<Hash>,
-        Hash: Algorithm<Nodeish>,
-        Nodeish: Eq + Ord + Clone + AsRef<[u8]>,
-    > Proof<Element, Hash, Nodeish> for ProofImpl<Element, Hash, Nodeish>
+impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
+    Proof<Element, Hash, Node> for ProofImpl<Element, Hash, Node>
 {
-    fn verify(&self, root: &Nodeish, element: &Element) -> bool {
+    fn verify(&self, root: &Node, element: &Element) -> bool {
         // Check that the root of the proof matches the provided root.
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
@@ -168,13 +150,13 @@ impl<
 /// Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable, Deserialize, Serialize)]
 #[repr(transparent)]
-pub struct Node(Digest);
+pub struct ShaNode(Digest);
 
-const_assert_eq!(size_of::<Node>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
+const_assert_eq!(size_of::<ShaNode>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
 
-/// Node is a wrapper around the RISC0 SHA2-256 digest type with the needed trait inmplementations
+/// ShaNode is a wrapper around the RISC0 SHA2-256 digest type with the needed trait inmplementations
 /// to be used as a node in the merkle_light package.
-impl Node {
+impl ShaNode {
     // Constructs the byte array digest value from big endian representation of the u32 words.
     // NOTE: I tested this on my (little endian) x86 machine. Have not tested it on a big endian
     // machine.
@@ -188,7 +170,7 @@ impl Node {
     }
 }
 
-impl AsRef<[u8]> for Node {
+impl AsRef<[u8]> for ShaNode {
     fn as_ref(&self) -> &[u8] {
         // NOTE: On Intel x86_64, this results in a value that does not match the canoncial
         // SHA2-256 hash function. If the u32 values were to be stored in big endian format, this
@@ -198,25 +180,25 @@ impl AsRef<[u8]> for Node {
 }
 
 // NOTE: It would be nice is Digest implements Ord and/or Into<[u32; 8]>
-impl Ord for Node {
+impl Ord for ShaNode {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.get().cmp(other.0.get())
     }
 }
 
-impl PartialOrd for Node {
+impl PartialOrd for ShaNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl From<Digest> for Node {
+impl From<Digest> for ShaNode {
     fn from(digest: Digest) -> Self {
         Self(digest)
     }
 }
 
-impl Into<Digest> for Node {
+impl Into<Digest> for ShaNode {
     fn into(self) -> Digest {
         self.0
     }
@@ -270,13 +252,13 @@ impl<H: Sha> Hasher for ShaHasher<H> {
     }
 }
 
-impl<H: Sha> Algorithm<Node> for ShaHasher<H>
+impl<H: Sha> Algorithm<ShaNode> for ShaHasher<H>
 where
     ShaHasher<H>: Default,
 {
-    fn hash(&mut self) -> Node {
+    fn hash(&mut self) -> ShaNode {
         // NOTE: Does Sha need to be a struct rather than a static method?
-        Node(*self.sha.hash_bytes(&self.data))
+        ShaNode(*self.sha.hash_bytes(&self.data))
     }
 }
 

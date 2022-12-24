@@ -23,103 +23,59 @@ cfg_if::cfg_if! {
 }
 
 /// Merkle tree for use as a vector commitment over elements of the specified type.
-pub trait MerkleTree<
-    Element: Hashable<Hash>,
-    Hash: Algorithm<Node>,
-    Node: Eq + Ord + Clone + AsRef<[u8]>,
->
+pub struct MerkleTree<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    type Proof: Proof<Element, Hash, Node>;
-
-    fn prove(&self, i: usize) -> Self::Proof;
-}
-
-pub trait Proof<
-    Element: Hashable<Hash>,
-    Hash: Algorithm<Node>,
-    Node: Eq + Ord + Clone + AsRef<[u8]>,
->
-{
-    // TOOD: Potentially return a Result type instead of a bool here.
-    fn verify(&self, root: &Node, element: &Element) -> bool;
-}
-
-pub struct MerkleTreeImpl<
-    Element: Hashable<Hash>,
-    Hash: Algorithm<Node>,
-    Node: Eq + Ord + Clone + AsRef<[u8]>,
-> {
-    inner: merkle::MerkleTree<Node, Hash>,
+    inner: merkle::MerkleTree<Node, ShaHasher<ShaImpl>>,
     phantom_elem: PhantomData<Element>,
 }
 
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>> Deref
-    for MerkleTreeImpl<Element, Hash, Node>
+impl<Element> MerkleTree<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    type Target = merkle::MerkleTree<Node, Hash>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
-    From<merkle::MerkleTree<Node, Hash>> for MerkleTreeImpl<Element, Hash, Node>
-{
-    fn from(inner: merkle::MerkleTree<Node, Hash>) -> Self {
-        Self {
-            inner,
-            phantom_elem: PhantomData,
-        }
-    }
-}
-
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
-    MerkleTree<Element, Hash, Node> for MerkleTreeImpl<Element, Hash, Node>
-{
-    type Proof = ProofImpl<Element, Hash, Node>;
-
-    fn prove(&self, i: usize) -> Self::Proof {
+    pub fn prove(&self, i: usize) -> Proof<Element> {
         self.gen_proof(i).into()
     }
 }
 
-pub struct ProofImpl<
-    Element: Hashable<Hash>,
-    Hash: Algorithm<Node>,
-    Node: Eq + Ord + Clone + AsRef<[u8]>,
-> {
-    inner: proof::Proof<Node>,
-    phantom_elem: PhantomData<Element>,
-    phantom_hash: PhantomData<Hash>,
-}
-
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>> Deref
-    for ProofImpl<Element, Hash, Node>
+impl<Element> Deref for MerkleTree<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    type Target = proof::Proof<Node>;
+    type Target = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
-    From<proof::Proof<Node>> for ProofImpl<Element, Hash, Node>
+impl<Element> From<merkle::MerkleTree<Node, ShaHasher<ShaImpl>>> for MerkleTree<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    fn from(inner: proof::Proof<Node>) -> Self {
+    fn from(inner: merkle::MerkleTree<Node, ShaHasher<ShaImpl>>) -> Self {
         Self {
             inner,
             phantom_elem: PhantomData,
-            phantom_hash: PhantomData,
         }
     }
 }
 
-impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + AsRef<[u8]>>
-    Proof<Element, Hash, Node> for ProofImpl<Element, Hash, Node>
+pub struct Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    fn verify(&self, root: &Node, element: &Element) -> bool {
+    inner: proof::Proof<Node>,
+    phantom_elem: PhantomData<Element>,
+}
+
+impl<Element> Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    pub fn verify(&self, root: &Node, element: &Element) -> bool {
         // Check that the root of the proof matches the provided root.
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
@@ -129,13 +85,13 @@ impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + As
         }
 
         // Check that the path from the leaf matches the root.
-        if !self.validate::<Hash>() {
+        if !self.validate::<ShaHasher<ShaImpl>>() {
             return false;
         }
 
         // Check the element hashes to the leaf in the proof.
         // Hash the element.
-        let algorithm = &mut Hash::default();
+        let algorithm = &mut ShaHasher::<ShaImpl>::default();
         element.hash(algorithm);
         let elem_hash = algorithm.hash();
 
@@ -147,16 +103,39 @@ impl<Element: Hashable<Hash>, Hash: Algorithm<Node>, Node: Eq + Ord + Clone + As
     }
 }
 
+impl<Element> Deref for Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    type Target = proof::Proof<Node>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<Element> From<proof::Proof<Node>> for Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    fn from(inner: proof::Proof<Node>) -> Self {
+        Self {
+            inner,
+            phantom_elem: PhantomData,
+        }
+    }
+}
+
 /// Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable, Deserialize, Serialize)]
 #[repr(transparent)]
-pub struct ShaNode(Digest);
+pub struct Node(Digest);
 
-const_assert_eq!(size_of::<ShaNode>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
+const_assert_eq!(size_of::<Node>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
 
-/// ShaNode is a wrapper around the RISC0 SHA2-256 digest type with the needed trait inmplementations
+/// Node is a wrapper around the RISC0 SHA2-256 digest type with the needed trait inmplementations
 /// to be used as a node in the merkle_light package.
-impl ShaNode {
+impl Node {
     // Constructs the byte array digest value from big endian representation of the u32 words.
     // NOTE: I tested this on my (little endian) x86 machine. Have not tested it on a big endian
     // machine.
@@ -170,7 +149,7 @@ impl ShaNode {
     }
 }
 
-impl AsRef<[u8]> for ShaNode {
+impl AsRef<[u8]> for Node {
     fn as_ref(&self) -> &[u8] {
         // NOTE: On Intel x86_64, this results in a value that does not match the canoncial
         // SHA2-256 hash function. If the u32 values were to be stored in big endian format, this
@@ -180,25 +159,25 @@ impl AsRef<[u8]> for ShaNode {
 }
 
 // NOTE: It would be nice is Digest implements Ord and/or Into<[u32; 8]>
-impl Ord for ShaNode {
+impl Ord for Node {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.get().cmp(other.0.get())
     }
 }
 
-impl PartialOrd for ShaNode {
+impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl From<Digest> for ShaNode {
+impl From<Digest> for Node {
     fn from(digest: Digest) -> Self {
         Self(digest)
     }
 }
 
-impl Into<Digest> for ShaNode {
+impl Into<Digest> for Node {
     fn into(self) -> Digest {
         self.0
     }
@@ -252,28 +231,26 @@ impl<H: Sha> Hasher for ShaHasher<H> {
     }
 }
 
-impl<H: Sha> Algorithm<ShaNode> for ShaHasher<H>
+impl<H: Sha> Algorithm<Node> for ShaHasher<H>
 where
     ShaHasher<H>: Default,
 {
-    fn hash(&mut self) -> ShaNode {
+    fn hash(&mut self) -> Node {
         // NOTE: Does Sha need to be a struct rather than a static method?
-        ShaNode(*self.sha.hash_bytes(&self.data))
+        Node(*self.sha.hash_bytes(&self.data))
     }
 }
 
 #[cfg(test)]
 mod test {
-    use merkle_light::hash::Hashable;
-
     use super::*;
 
     #[test]
     fn basic_merkle_tree_constuction_works() {
         let items = (0..1 << 10).collect::<Vec<_>>();
-        let tree = MerkleTreeImpl::<u32, _, _>::from(
-            merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(&items),
-        );
+        let tree = MerkleTree::<u32>::from(merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(
+            &items,
+        ));
         assert_eq!(tree.len(), 2047);
 
         let proof = tree.prove(47);

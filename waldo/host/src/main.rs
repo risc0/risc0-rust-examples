@@ -48,11 +48,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     // Send the merkle proof to the guest.
-    let index = 157;
-    let merkle_proof = img_bytes_merkle_tree.prove(index);
+    let range = 157..167;
     let input = PrivateInput {
-        subsequence: vec![img_bytes[index]],
-        proofs: vec![merkle_proof],
+        subsequence: img_bytes[range.clone()].to_vec(),
+        proofs: range.map(|i| img_bytes_merkle_tree.prove(i)).collect(),
     };
     prover.add_input(&to_vec(&input)?)?;
 
@@ -72,8 +71,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         from_slice(journal_vec.as_slice()).expect("Journal should contain a byte value");
 
     println!(
-        "Verified that {:?} is a member of a Merkle tree with root: {:?}",
-        journal.subsequence[0], journal.root,
+        "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}",
+        journal.subsequence, journal.root,
     );
 
     Ok(())

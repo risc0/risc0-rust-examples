@@ -109,6 +109,13 @@ where
 
         leaf_hash == self.item()
     }
+
+    // Index computes, from the path, the index of the proven element in the vector.
+    pub fn index(&self) -> usize {
+        self.path()
+            .iter()
+            .rfold(0, |index, bit| (index << 1) + (!*bit as usize))
+    }
 }
 
 impl<Element> Clone for Proof<Element>
@@ -287,9 +294,9 @@ mod test {
 
     /// Build and return a random Merkle tree with 1028 u32 elements.
     fn random_merkle_tree() -> (Vec<u32>, MerkleTree<u32>) {
-        let items: Vec<u32> = (0..1 << 10).map(|_| rand::thread_rng().gen()).collect();
+        let item_count: usize = rand::thread_rng().gen_range((1 << 10)..(1 << 12));
+        let items: Vec<u32> = (0..item_count).map(|_| rand::thread_rng().gen()).collect();
         let tree = MerkleTree::<u32>::from_elements(items.iter().copied());
-        assert_eq!(tree.len(), 2047);
 
         (items, tree)
     }
@@ -297,19 +304,32 @@ mod test {
     #[test]
     fn merkle_tree_proving_works() {
         let (items, tree) = random_merkle_tree();
-        let proof = tree.prove(47);
-        assert!(proof.verify(&tree.root(), items[47]));
+        for (index, item) in items.into_iter().enumerate() {
+            let proof = tree.prove(index);
+            assert!(proof.verify(&tree.root(), item));
+        }
     }
 
     #[test]
     fn merkle_proof_serialization_works() {
         let (items, tree) = random_merkle_tree();
-        let proof = tree.prove(47);
+        for (index, item) in items.into_iter().enumerate() {
+            let proof = tree.prove(index);
 
-        let proof_bytes = bincode::serialize(&proof).unwrap();
-        let proof_deserialized: Proof<u32> = bincode::deserialize(&proof_bytes).unwrap();
+            let proof_bytes = bincode::serialize(&proof).unwrap();
+            let proof_deserialized: Proof<u32> = bincode::deserialize(&proof_bytes).unwrap();
 
-        assert!(proof_deserialized.verify(&tree.root(), items[47]));
+            assert!(proof_deserialized.verify(&tree.root(), item));
+        }
+    }
+
+    #[test]
+    fn merkle_proof_index_works() {
+        let (items, tree) = random_merkle_tree();
+        for (index, _item) in items.into_iter().enumerate() {
+            let proof = tree.prove(index);
+            assert_eq!(proof.index(), index);
+        }
     }
 
     #[test]

@@ -69,6 +69,8 @@ where
     }
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(from = "(Vec<Node>, Vec<bool>)", into = "(Vec<Node>, Vec<bool>)")]
 pub struct Proof<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
@@ -109,6 +111,18 @@ where
     }
 }
 
+impl<Element> Clone for Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            phantom_elem: PhantomData,
+        }
+    }
+}
+
 impl<Element> Deref for Proof<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
@@ -129,6 +143,24 @@ where
             inner,
             phantom_elem: PhantomData,
         }
+    }
+}
+
+impl<Element> From<(Vec<Node>, Vec<bool>)> for Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    fn from(tuple: (Vec<Node>, Vec<bool>)) -> Self {
+        proof::Proof::new(tuple.0, tuple.1).into()
+    }
+}
+
+impl<Element> Into<(Vec<Node>, Vec<bool>)> for Proof<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>>,
+{
+    fn into(self) -> (Vec<Node>, Vec<bool>) {
+        (self.inner.lemma().to_vec(), self.inner.path().to_vec())
     }
 }
 
@@ -253,14 +285,31 @@ mod test {
 
     use super::*;
 
-    #[test]
-    fn basic_merkle_tree_constuction_works() {
+    /// Build and return a random Merkle tree with 1028 u32 elements.
+    fn random_merkle_tree() -> (Vec<u32>, MerkleTree<u32>) {
         let items: Vec<u32> = (0..1 << 10).map(|_| rand::thread_rng().gen()).collect();
         let tree = MerkleTree::<u32>::from_elements(items.iter().copied());
         assert_eq!(tree.len(), 2047);
 
+        (items, tree)
+    }
+
+    #[test]
+    fn merkle_tree_proving_works() {
+        let (items, tree) = random_merkle_tree();
         let proof = tree.prove(47);
         assert!(proof.verify(&tree.root(), items[47]));
+    }
+
+    #[test]
+    fn merkle_proof_serialization_works() {
+        let (items, tree) = random_merkle_tree();
+        let proof = tree.prove(47);
+
+        let proof_bytes = bincode::serialize(&proof).unwrap();
+        let proof_deserialized: Proof<u32> = bincode::deserialize(&proof_bytes).unwrap();
+
+        assert!(proof_deserialized.verify(&tree.root(), items[47]));
     }
 
     #[test]

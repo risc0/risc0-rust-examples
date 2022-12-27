@@ -3,18 +3,20 @@ extern crate static_assertions;
 
 pub mod merkle;
 
+use std::ops::Range;
+
 use serde::{Deserialize, Serialize};
+
+/// RISC0 channel identifier for providing oracle access to a vector to the guest from the host.
+pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateInput {
-    pub subsequence: Vec<u8>,
+    /// Merkle tree root committing to a vector of data.
+    pub root: merkle::Node,
 
-    /// Proofs is a vector of proofs that attest to inclusion of the subsequence into a single
-    /// Merkle tree.
-    // NOTE: This structure (and the subsequent verification) could be improved with support for
-    // batch proofs that deduplicates the common nodes among the paths, and allows for batched
-    // verification.
-    pub proofs: Vec<merkle::Proof<u8>>,
+    /// Range of indices to access to and verify subsequence membership.
+    pub range: Range<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

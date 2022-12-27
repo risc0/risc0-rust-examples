@@ -1,14 +1,12 @@
 use std::error::Error;
-use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 
 use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
 use rand::RngCore;
-use risc0_zkp::core::sha::Digest;
-use risc0_zkvm::host::Prover;
-use risc0_zkvm::serde::{from_slice, to_vec};
-use waldo_core::merkle::{MerkleTree, Node};
-use waldo_core::{Journal, PrivateInput};
+use risc0_zkvm::host::{Prover, ProverOpts};
+use risc0_zkvm::serde;
+use waldo_core::merkle::MerkleTree;
+use waldo_core::{Journal, PrivateInput, VECTOR_ORACLE_CHANNEL};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -36,10 +34,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let img_bytes_merkle_tree = MerkleTree::<u8>::from_elements(img_bytes.iter().copied());
 
     // Make the prover, loading the image crop method binary and method ID.
-    let method_code = std::fs::read(IMAGE_CROP_PATH)
-        .expect("Method code should be present at the specified path");
-    let mut prover = Prover::new(&method_code, IMAGE_CROP_ID)
-        .expect("Prover should be constructed from matching code and method ID");
+    let method_code = std::fs::read(IMAGE_CROP_PATH)?;
+    let prover_opts = ProverOpts::default().with_sendrecv_callback(
+        VECTOR_ORACLE_CHANNEL,
+        |channel_id, data| -> Vec<u8> {
+            assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
+            // NOTE: This would be nicer with we could avoid bytemuck.
+            let index: usize = serde::from_slice::<u32>(bytemuck::cast_slice(data))
+                .unwrap()
+                .try_into()
+                .unwrap();
+            let value = img_bytes[index];
+            let proof = img_bytes_merkle_tree.prove(index);
+            bytemuck::cast_slice(&serde::to_vec(&(value, proof)).unwrap()).to_vec()
+        },
+    );
+    let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
 
     println!(
         "Created Merkle tree with root {:?} and {} leaves",
@@ -48,27 +58,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     // Send the merkle proof to the guest.
-    let range = 157..167;
     let input = PrivateInput {
-        subsequence: img_bytes[range.clone()].to_vec(),
-        proofs: range.map(|i| img_bytes_merkle_tree.prove(i)).collect(),
+        root: img_bytes_merkle_tree.root(),
+        range: 157..167,
     };
-    prover.add_input(&to_vec(&input)?)?;
+    prover.add_input(&serde::to_vec(&input)?)?;
 
     // Run prover & generate receipt
-    let receipt = prover.run().expect("Code should be provable");
+    let receipt = prover.run()?;
 
     // Verify the receipt.
-    receipt
-        .verify(IMAGE_CROP_ID)
-        .expect("Proven code should verify");
+    receipt.verify(IMAGE_CROP_ID)?;
+    let journal_vec = receipt.get_journal_vec()?;
 
-    let journal_vec = receipt
-        .get_journal_vec()
-        .expect("Journal should be accessible");
-
-    let journal: Journal =
-        from_slice(journal_vec.as_slice()).expect("Journal should contain a byte value");
+    let journal: Journal = serde::from_slice(journal_vec.as_slice())?;
 
     println!(
         "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}",

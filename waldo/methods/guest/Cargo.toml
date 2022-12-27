@@ -10,6 +10,8 @@ risc0-build = "0.11"
 
 [dependencies]
 risc0-zkvm-guest = "0.11"
+risc0-zkvm = { version = "0.11", default-features = false }
+bytemuck = "1.12"
 # image = { version = "0.24.5", features = ["webp", "png"], default-features = false }
 waldo-core = { path = "../../core", features = ["zkvm"] }
-merkle_light = "0.4.0"
+merkle_light = "0.4"

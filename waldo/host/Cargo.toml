@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytemuck = "1.12"
 image = { version = "0.24.5", features = ["webp", "png", "bmp"], default-features = false }
 rand = "0.8.5"
 risc0-zkp = "0.11"

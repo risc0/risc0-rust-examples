@@ -8,6 +8,7 @@ use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
 use waldo_core::merkle::{MerkleTree, Node};
+use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -31,7 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     rand::thread_rng().fill_bytes(&mut img_bytes);
 
     // Create a Merkle tree over the image bytes.
-    let img_bytes_merkle_tree = MerkleTree::from_data(&img_bytes);
+    // TODO: Chunk the bytes into reasonable sizes.
+    let img_bytes_merkle_tree = MerkleTree::<u8>::from_elements(img_bytes.iter().copied());
 
     // Make the prover, loading the image crop method binary and method ID.
     let method_code = std::fs::read(IMAGE_CROP_PATH)
@@ -46,12 +48,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     // Send the merkle proof to the guest.
-    // TODO: Implement a nicer way for proofs to be serialized and deserialized.
     let index = 157;
-    let merkle_proof = img_bytes_merkle_tree.gen_proof(index);
-    prover.add_input(&to_vec(&merkle_proof.lemma())?)?;
-    prover.add_input(&to_vec(&merkle_proof.path())?)?;
-    prover.add_input(&to_vec(&img_bytes[index])?)?;
+    let merkle_proof = img_bytes_merkle_tree.prove(index);
+    let input = PrivateInput {
+        subsequence: vec![img_bytes[index]],
+        proofs: vec![merkle_proof],
+    };
+    prover.add_input(&to_vec(&input)?)?;
 
     // Run prover & generate receipt
     let receipt = prover.run().expect("Code should be provable");
@@ -65,12 +68,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         .get_journal_vec()
         .expect("Journal should be accessible");
 
-    let (root, value) = from_slice::<(Node, u8)>(journal_vec.as_slice())
-        .expect("Journal should contain a byte value");
+    let journal: Journal =
+        from_slice(journal_vec.as_slice()).expect("Journal should contain a byte value");
 
     println!(
-        "Verified that {:?} is a member of a Merkle tree with root: {}",
-        root, value,
+        "Verified that {:?} is a member of a Merkle tree with root: {:?}",
+        journal.subsequence[0], journal.root,
     );
 
     Ok(())

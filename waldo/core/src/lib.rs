@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateInput {
-    subsequence: Vec<u8>,
-    proofs: Vec<merkle::Proof<u8>>,
+    pub subsequence: Vec<u8>,
+    pub proofs: Vec<merkle::Proof<u8>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Journal {
-    subsequence: Vec<u8>,
-    root: merkle::Node,
+    pub subsequence: Vec<u8>,
+    pub root: merkle::Node,
 }

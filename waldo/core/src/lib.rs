@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateInput {
     subsequence: Vec<u8>,
-    // TODO: Improve serialization of proofs.
-    proofs: Vec<(merkle::Node, Vec<bool>)>,
+    proofs: Vec<merkle::Proof<u8>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

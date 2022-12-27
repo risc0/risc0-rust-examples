@@ -19,17 +19,14 @@ pub fn main() {
     // in the subsequence against the root, and check for adjacency.
     let root = input.proofs[0].root();
     let start_index = input.proofs[0].index();
-    for (offset, (value, proof)) in input
-        .subsequence
-        .iter()
-        .copied()
-        .zip(input.proofs)
-        .enumerate()
+    for (offset, (value, proof)) in
+        Iterator::zip(input.subsequence.iter().copied(), input.proofs).enumerate()
     {
         assert!(proof.verify(&root, value));
         assert_eq!(start_index + offset, proof.index());
     }
 
+    // Collect the verified public information into the journal.
     let journal = Journal {
         subsequence: input.subsequence,
         root: root,

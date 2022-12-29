@@ -10,6 +10,8 @@ use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
 #[cfg(feature = "zkvm")]
+use risc0_zkvm::serde as risc0_serde;
+#[cfg(feature = "zkvm")]
 use risc0_zkvm_guest as guest;
 use serde::{Deserialize, Serialize};
 
@@ -83,7 +85,7 @@ impl<Element> Proof<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    pub fn verify(&self, root: &Node, element: Element) -> bool {
+    pub fn verify(&self, root: &Node, element: &Element) -> bool {
         // Check that the root of the proof matches the provided root.
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
@@ -262,6 +264,52 @@ impl Default for ShaHasher<guest::sha::Impl> {
     }
 }
 
+#[cfg(feature = "zkvm")]
+pub struct VectorOracle<Element> {
+    pub root: Node,
+    phantom_elem: PhantomData<Element>,
+}
+
+#[cfg(feature = "zkvm")]
+impl<Element> VectorOracle<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
+{
+    pub fn new(root: Node) -> Self {
+        Self {
+            root,
+            phantom_elem: PhantomData,
+        }
+    }
+
+    // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
+    // there is a valid, known, element at every index. Any out of bounds access or access to an
+    // index for which there is no element will not return since no valid proof can be generated.
+    pub fn get(&self, index: usize) -> Element {
+        let (value, proof): (Element, Proof<Element>) = risc0_serde::from_slice(
+            // Fetch the value and proof from the host by index.
+            // NOTE: It would be nice if there was a wrapper for send_recv that looked more like
+            // env::read(). A smaller step would be to have this method as take [u32] instead of [u8]
+            // to avoid mucking around with the bytes.
+            // TODO: Consider using bincode or another byte serializer instead of the u32 RISC0 format.
+            guest::env::send_recv_as_u32(
+                crate::VECTOR_ORACLE_CHANNEL,
+                // Cast to u32 before serializing since usize is an architecture dependent type.
+                bytemuck::cast_slice(
+                    &risc0_serde::to_vec(&(u32::try_from(index).unwrap())).unwrap(),
+                ),
+            )
+            .0,
+        )
+        .unwrap();
+
+        // Verify the proof for the value of the element at the given index in the committed vector.
+        assert_eq!(index, proof.index());
+        assert!(proof.verify(&self.root, &value));
+        value
+    }
+}
+
 // NOTE: The Hasher trait is really designed for use with hashmaps and is quite ill-suited as an
 // interface for use by merkle_light. This is one of the design weaknesses of this package.
 impl<H: Sha> Hasher for ShaHasher<H> {
@@ -306,7 +354,7 @@ mod test {
         let (items, tree) = random_merkle_tree();
         for (index, item) in items.into_iter().enumerate() {
             let proof = tree.prove(index);
-            assert!(proof.verify(&tree.root(), item));
+            assert!(proof.verify(&tree.root(), &item));
         }
     }
 
@@ -319,7 +367,7 @@ mod test {
             let proof_bytes = bincode::serialize(&proof).unwrap();
             let proof_deserialized: Proof<u32> = bincode::deserialize(&proof_bytes).unwrap();
 
-            assert!(proof_deserialized.verify(&tree.root(), item));
+            assert!(proof_deserialized.verify(&tree.root(), &item));
         }
     }
 

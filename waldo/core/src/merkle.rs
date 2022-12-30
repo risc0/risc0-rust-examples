@@ -9,7 +9,7 @@ use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
-#[cfg(feature = "zkvm-guest")]
+#[cfg(any(feature = "zkvm-guest", feature = "zkvm-host"))]
 use risc0_zkvm::serde as risc0_serde;
 #[cfg(feature = "zkvm-guest")]
 use risc0_zkvm_guest as guest;
@@ -54,22 +54,27 @@ where
     pub fn prove(&self, i: usize) -> Proof<Element> {
         self.tree.gen_proof(i).into()
     }
+}
 
-    // DO NOT MERGE: Need to move this function to a place where it has access both the full Merkle
-    /* tree and the underlying elements.
-    pub fn(channel_id: u32, data: &[u8]) -> Vec<u8> {
-        // Callback function must only be registered as a callback for the VECTOR_ORACLE_CHANNEL.
-        assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
-        // NOTE: This would be nicer with we could avoid bytemuck.
-        let index: usize = serde::from_slice::<u32>(bytemuck::cast_slice(data))
-            .unwrap()
-            .try_into()
-            .unwrap();
-        let value = img_bytes[index];
-        let proof = img_bytes_merkle_tree.prove(index);
-        bytemuck::cast_slice(&serde::to_vec(&(value, proof)).unwrap()).to_vec()
+#[cfg(feature = "zkvm-host")]
+impl<Element> MerkleTree<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>> + Serialize,
+{
+    pub fn vector_oracle_callback<'a>(&'a self) -> impl Fn(u32, &[u8]) -> Vec<u8> + 'a {
+        |channel_id, data| {
+            // Callback function must only be registered as a callback for the VECTOR_ORACLE_CHANNEL.
+            assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
+            // NOTE: This would be nicer with we could avoid bytemuck.
+            let index: usize = risc0_serde::from_slice::<u32>(bytemuck::cast_slice(data))
+                .unwrap()
+                .try_into()
+                .unwrap();
+            let value = &self.elements()[index];
+            let proof = self.prove(index);
+            bytemuck::cast_slice(&risc0_serde::to_vec(&(value, proof)).unwrap()).to_vec()
+        }
     }
-    */
 }
 
 impl<Element> Deref for MerkleTree<Element>

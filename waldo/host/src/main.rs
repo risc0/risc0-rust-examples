@@ -37,17 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let method_code = std::fs::read(IMAGE_CROP_PATH)?;
     let prover_opts = ProverOpts::default().with_sendrecv_callback(
         VECTOR_ORACLE_CHANNEL,
-        |channel_id, data| -> Vec<u8> {
-            assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
-            // NOTE: This would be nicer with we could avoid bytemuck.
-            let index: usize = serde::from_slice::<u32>(bytemuck::cast_slice(data))
-                .unwrap()
-                .try_into()
-                .unwrap();
-            let value = img_bytes_merkle_tree.elements()[index];
-            let proof = img_bytes_merkle_tree.prove(index);
-            bytemuck::cast_slice(&serde::to_vec(&(value, proof)).unwrap()).to_vec()
-        },
+        img_bytes_merkle_tree.vector_oracle_callback(),
     );
     let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
 

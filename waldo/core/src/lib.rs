@@ -3,8 +3,6 @@ extern crate static_assertions;
 
 pub mod merkle;
 
-use std::ops::Range;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -13,10 +11,13 @@ pub struct PrivateInput {
     pub root: merkle::Node,
 
     /// Width and height of the committed image.
-    pub dimensions: (u32, u32),
+    pub image_dimensions: (u32, u32),
 
-    /// Range of indices to access to and verify subsequence membership.
-    pub range: Range<u32>,
+    /// X and y location for the top left corner of the crop.
+    pub crop_locaction: (u32, u32),
+
+    /// X and y location for the top left corner of the crop.
+    pub crop_dimensions: (u32, u32),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,5 +30,5 @@ pub struct Journal {
 
     /// Width and height of the committed image.
     /// Must be checked against the dimensions of the image that was expected to be cropped.
-    pub dimensions: (u32, u32),
+    pub image_dimensions: (u32, u32),
 }

@@ -1,7 +1,7 @@
 #![no_main]
 // #![no_std]
 
-use image::{GenericImageView, Rgb};
+use image::{imageops, GenericImageView, Rgb};
 use risc0_zkvm_guest::env;
 use waldo_core::merkle::{Node, VectorOracle};
 use waldo_core::{Journal, PrivateInput};
@@ -64,14 +64,28 @@ pub fn main() {
 
     // Initialize a Merkle tree based vector oracle, supporting verified access to a vector of data
     // on the host. Use the oracle to access a range of elements from the host.
-    let oracle = ImageOracle::new(input.root, input.dimensions.0, input.dimensions.1);
-    let subsequence: Vec<[u8; 3]> = input.range.map(|i| oracle.get_pixel(i, 0).0).collect();
+    let oracle = ImageOracle::new(
+        input.root,
+        input.image_dimensions.0,
+        input.image_dimensions.1,
+    );
+
+    let crop = imageops::crop_imm(
+        &oracle,
+        input.crop_locaction.0,
+        input.crop_locaction.1,
+        input.crop_dimensions.0,
+        input.crop_dimensions.1,
+    );
 
     // Collect the verified public information into the journal.
     let journal = Journal {
-        subsequence,
+        subsequence: crop
+            .pixels()
+            .map(|(_, _, pixel): (_, _, Rgb<u8>)| pixel.0)
+            .collect(),
         root: *oracle.root(),
-        dimensions: oracle.dimensions(),
+        image_dimensions: oracle.dimensions(),
     };
     env::commit(&journal);
 }

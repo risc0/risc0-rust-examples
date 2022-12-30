@@ -1,8 +1,7 @@
 use std::error::Error;
 
 use image::io::Reader as ImageReader;
-use image::ImageOutputFormat;
-use rand::{Rng, RngCore};
+use image::{GenericImageView, Rgb};
 use risc0_zkvm::host::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL};
@@ -10,47 +9,46 @@ use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    /*
-
-    // Pick two numbers
+    // Read the image from disk.
     let image_path: &'static str = "./waldo.webp";
     let img = ImageReader::open(image_path)?.decode()?;
-    println!("Read image at {} with size: {} x {}", image_path, img.width(), img.height());
+    println!(
+        "Read image at {} with size: {} x {}",
+        image_path,
+        img.width(),
+        img.height()
+    );
 
-    let mut cursor = Cursor::new(Vec::new());
-    let format = ImageOutputFormat::Bmp;
-    let img_rgb8 = img.as_rgb8().ok_or("cannot encode image as RGB8")?;
-    img_rgb8.write_to(&mut cursor, format.clone())?;
-    let img_bytes = cursor.into_inner();
-    println!("Wrote image to a buffer with format {:?} and {} bytes", &format, &img_bytes.len());
-    */
+    // Copy the image into a vector of pixels, and create a Merkle tree committing to it.
+    let img_dimensions = img.dimensions();
+    let img_pixels: Vec<[u8; 3]> = img
+        .into_rgb8()
+        .pixels()
+        .map(|pixel: &Rgb<u8>| pixel.0)
+        .collect();
+    let img_merkle_tree = MerkleTree::<[u8; 3]>::new(img_pixels);
 
-    // Fill a buffer with random bytes.
-    let img_bytes: Vec<[u8; 3]> = (0..1 << 15).map(|_| rand::thread_rng().gen()).collect();
-
-    // Create a Merkle tree over the image bytes.
-    // TODO: Chunk the bytes into reasonable sizes.
-    let img_bytes_merkle_tree = MerkleTree::<[u8; 3]>::new(img_bytes);
-
-    // Make the prover, loading the image crop method binary and method ID.
+    // Make the prover, loading the image crop method binary and method ID, and registerig a
+    // send_recv callback to communicate vector oracle data from the Merkle tree.
     let method_code = std::fs::read(IMAGE_CROP_PATH)?;
     let prover_opts = ProverOpts::default().with_sendrecv_callback(
         VECTOR_ORACLE_CHANNEL,
-        img_bytes_merkle_tree.vector_oracle_callback(),
+        img_merkle_tree.vector_oracle_callback(),
     );
     let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
 
     println!(
         "Created Merkle tree with root {:?} and {} leaves",
-        img_bytes_merkle_tree.root(),
-        img_bytes_merkle_tree.leafs(),
+        img_merkle_tree.root(),
+        img_merkle_tree.leafs(),
     );
 
     // Send the merkle proof to the guest.
     let input = PrivateInput {
-        root: img_bytes_merkle_tree.root(),
-        dimensions: (1 << 15, 1),
-        range: 157..167,
+        root: img_merkle_tree.root(),
+        image_dimensions: img_dimensions,
+        crop_locaction: (1160, 300),
+        crop_dimensions: (1, 1),
     };
     prover.add_input(&serde::to_vec(&input)?)?;
 
@@ -65,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!(
         "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}, {:?}",
-        journal.subsequence, journal.root, journal.dimensions
+        journal.subsequence, journal.root, journal.image_dimensions
     );
 
     Ok(())

@@ -22,4 +22,4 @@ rand = "0.8.5"
 sha2 = "0.10.6"
 
 [features]
-zkvm = ["risc0-zkvm-guest", "risc0-zkvm"]
+zkvm-guest = ["risc0-zkvm-guest", "risc0-zkvm"]

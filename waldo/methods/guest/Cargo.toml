@@ -15,4 +15,4 @@ merkle_light = "0.4"
 risc0-zkvm = { version = "0.11", default-features = false }
 risc0-zkvm-guest = "0.11"
 serde = "1.0"
-waldo-core = { path = "../../core", features = ["zkvm"] }
+waldo-core = { path = "../../core", features = ["zkvm-guest"] }

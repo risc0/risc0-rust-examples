@@ -7,9 +7,6 @@ use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
 
-/// RISC0 channel identifier for providing oracle access to a vector to the guest from the host.
-pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateInput {
     /// Merkle tree root committing to a vector of data.

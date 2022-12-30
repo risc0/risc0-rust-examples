@@ -9,15 +9,18 @@ use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
 use risc0_zkp::core::sha_cpu;
-#[cfg(feature = "zkvm")]
+#[cfg(feature = "zkvm-guest")]
 use risc0_zkvm::serde as risc0_serde;
-#[cfg(feature = "zkvm")]
+#[cfg(feature = "zkvm-guest")]
 use risc0_zkvm_guest as guest;
 use serde::{Deserialize, Serialize};
 
+/// RISC0 channel identifier for providing oracle access to a vector to the guest from the host.
+pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
+
 // Pick the appropriate implementation of SHA2-256 depending on whether we are in the zkVM guest.
 cfg_if::cfg_if! {
-    if #[cfg(all(target_os = "zkvm", feature = "zkvm"))] {
+    if #[cfg(all(target_os = "zkvm", feature = "zkvm-guest"))] {
         pub type ShaImpl = guest::sha::Impl;
     } else {
         pub type ShaImpl = sha_cpu::Impl;
@@ -29,23 +32,44 @@ pub struct MerkleTree<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    inner: merkle::MerkleTree<Node, ShaHasher<ShaImpl>>,
-    phantom_elem: PhantomData<Element>,
+    tree: merkle::MerkleTree<Node, ShaHasher<ShaImpl>>,
+    elements: Vec<Element>,
 }
 
 impl<Element> MerkleTree<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>>,
 {
-    pub fn from_elements<I: IntoIterator<Item = Element>>(elements: I) -> Self {
-        Self::from(merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(
+    pub fn new(elements: Vec<Element>) -> Self {
+        Self {
+            tree: merkle::MerkleTree::<_, ShaHasher<ShaImpl>>::from_data(elements.iter()),
             elements,
-        ))
+        }
+    }
+
+    pub fn elements(&self) -> &[Element] {
+        &self.elements
     }
 
     pub fn prove(&self, i: usize) -> Proof<Element> {
-        self.gen_proof(i).into()
+        self.tree.gen_proof(i).into()
     }
+
+    // DO NOT MERGE: Need to move this function to a place where it has access both the full Merkle
+    /* tree and the underlying elements.
+    pub fn(channel_id: u32, data: &[u8]) -> Vec<u8> {
+        // Callback function must only be registered as a callback for the VECTOR_ORACLE_CHANNEL.
+        assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
+        // NOTE: This would be nicer with we could avoid bytemuck.
+        let index: usize = serde::from_slice::<u32>(bytemuck::cast_slice(data))
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let value = img_bytes[index];
+        let proof = img_bytes_merkle_tree.prove(index);
+        bytemuck::cast_slice(&serde::to_vec(&(value, proof)).unwrap()).to_vec()
+    }
+    */
 }
 
 impl<Element> Deref for MerkleTree<Element>
@@ -55,19 +79,7 @@ where
     type Target = merkle::MerkleTree<Node, ShaHasher<ShaImpl>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<Element> From<merkle::MerkleTree<Node, ShaHasher<ShaImpl>>> for MerkleTree<Element>
-where
-    Element: Hashable<ShaHasher<ShaImpl>>,
-{
-    fn from(inner: merkle::MerkleTree<Node, ShaHasher<ShaImpl>>) -> Self {
-        Self {
-            inner,
-            phantom_elem: PhantomData,
-        }
+        &self.tree
     }
 }
 
@@ -90,12 +102,12 @@ where
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
         // flexible than it could be.
-        if &self.root() != root {
+        if &self.inner.root() != root {
             return false;
         }
 
         // Check that the path from the leaf matches the root.
-        if !self.validate::<ShaHasher<ShaImpl>>() {
+        if !self.inner.validate::<ShaHasher<ShaImpl>>() {
             return false;
         }
 
@@ -109,12 +121,13 @@ where
         algorithm.reset();
         let leaf_hash = algorithm.leaf(elem_hash);
 
-        leaf_hash == self.item()
+        leaf_hash == self.inner.item()
     }
 
     // Index computes, from the path, the index of the proven element in the vector.
     pub fn index(&self) -> usize {
-        self.path()
+        self.inner
+            .path()
             .iter()
             .rfold(0, |index, bit| (index << 1) + (!*bit as usize))
     }
@@ -251,62 +264,16 @@ impl Default for ShaHasher<sha_cpu::Impl> {
     }
 }
 
-#[cfg(feature = "zkvm")]
+#[cfg(feature = "zkvm-guest")]
 static ZKVM_SHA_IMPL: &'static guest::sha::Impl = &guest::sha::Impl {};
 
-#[cfg(feature = "zkvm")]
+#[cfg(feature = "zkvm-guest")]
 impl Default for ShaHasher<guest::sha::Impl> {
     fn default() -> Self {
         Self {
             data: Vec::new(),
             sha: ZKVM_SHA_IMPL,
         }
-    }
-}
-
-#[cfg(feature = "zkvm")]
-pub struct VectorOracle<Element> {
-    pub root: Node,
-    phantom_elem: PhantomData<Element>,
-}
-
-#[cfg(feature = "zkvm")]
-impl<Element> VectorOracle<Element>
-where
-    Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
-{
-    pub fn new(root: Node) -> Self {
-        Self {
-            root,
-            phantom_elem: PhantomData,
-        }
-    }
-
-    // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
-    // there is a valid, known, element at every index. Any out of bounds access or access to an
-    // index for which there is no element will not return since no valid proof can be generated.
-    pub fn get(&self, index: usize) -> Element {
-        let (value, proof): (Element, Proof<Element>) = risc0_serde::from_slice(
-            // Fetch the value and proof from the host by index.
-            // NOTE: It would be nice if there was a wrapper for send_recv that looked more like
-            // env::read(). A smaller step would be to have this method as take [u32] instead of [u8]
-            // to avoid mucking around with the bytes.
-            // TODO: Consider using bincode or another byte serializer instead of the u32 RISC0 format.
-            guest::env::send_recv_as_u32(
-                crate::VECTOR_ORACLE_CHANNEL,
-                // Cast to u32 before serializing since usize is an architecture dependent type.
-                bytemuck::cast_slice(
-                    &risc0_serde::to_vec(&(u32::try_from(index).unwrap())).unwrap(),
-                ),
-            )
-            .0,
-        )
-        .unwrap();
-
-        // Verify the proof for the value of the element at the given index in the committed vector.
-        assert_eq!(index, proof.index());
-        assert!(proof.verify(&self.root, &value));
-        value
     }
 }
 
@@ -334,6 +301,52 @@ where
     }
 }
 
+#[cfg(feature = "zkvm-guest")]
+pub struct VectorOracle<Element> {
+    pub root: Node,
+    phantom_elem: PhantomData<Element>,
+}
+
+#[cfg(feature = "zkvm-guest")]
+impl<Element> VectorOracle<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
+{
+    pub fn new(root: Node) -> Self {
+        Self {
+            root,
+            phantom_elem: PhantomData,
+        }
+    }
+
+    // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
+    // there is a valid, known, element at every index. Any out of bounds access or access to an
+    // index for which there is no element will not return since no valid proof can be generated.
+    pub fn get(&self, index: usize) -> Element {
+        let (value, proof): (Element, Proof<Element>) = risc0_serde::from_slice(
+            // Fetch the value and proof from the host by index.
+            // NOTE: It would be nice if there was a wrapper for send_recv that looked more like
+            // env::read(). A smaller step would be to have this method as take [u32] instead of [u8]
+            // to avoid mucking around with the bytes.
+            // TODO: Consider using bincode or another byte serializer instead of the u32 RISC0 format.
+            guest::env::send_recv_as_u32(
+                VECTOR_ORACLE_CHANNEL,
+                // Cast to u32 before serializing since usize is an architecture dependent type.
+                bytemuck::cast_slice(
+                    &risc0_serde::to_vec(&(u32::try_from(index).unwrap())).unwrap(),
+                ),
+            )
+            .0,
+        )
+        .unwrap();
+
+        // Verify the proof for the value of the element at the given index in the committed vector.
+        assert_eq!(index, proof.index());
+        assert!(proof.verify(&self.root, &value));
+        value
+    }
+}
+
 #[cfg(test)]
 mod test {
     use rand::Rng;
@@ -344,15 +357,13 @@ mod test {
     fn random_merkle_tree() -> (Vec<u32>, MerkleTree<u32>) {
         let item_count: usize = rand::thread_rng().gen_range((1 << 10)..(1 << 12));
         let items: Vec<u32> = (0..item_count).map(|_| rand::thread_rng().gen()).collect();
-        let tree = MerkleTree::<u32>::from_elements(items.iter().copied());
-
-        (items, tree)
+        MerkleTree::<u32>::new(items)
     }
 
     #[test]
     fn merkle_tree_proving_works() {
-        let (items, tree) = random_merkle_tree();
-        for (index, item) in items.into_iter().enumerate() {
+        let tree = random_merkle_tree();
+        for (index, item) in tree.elements().iter().enumerate() {
             let proof = tree.prove(index);
             assert!(proof.verify(&tree.root(), &item));
         }
@@ -360,8 +371,8 @@ mod test {
 
     #[test]
     fn merkle_proof_serialization_works() {
-        let (items, tree) = random_merkle_tree();
-        for (index, item) in items.into_iter().enumerate() {
+        let tree = random_merkle_tree();
+        for (index, item) in tree.elements().iter().enumerate() {
             let proof = tree.prove(index);
 
             let proof_bytes = bincode::serialize(&proof).unwrap();
@@ -373,8 +384,8 @@ mod test {
 
     #[test]
     fn merkle_proof_index_works() {
-        let (items, tree) = random_merkle_tree();
-        for (index, _item) in items.into_iter().enumerate() {
+        let tree = random_merkle_tree();
+        for (index, item) in tree.elements().iter().enumerate() {
             let proof = tree.prove(index);
             assert_eq!(proof.index(), index);
         }

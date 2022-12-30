@@ -5,8 +5,8 @@ use image::ImageOutputFormat;
 use rand::RngCore;
 use risc0_zkvm::host::{Prover, ProverOpts};
 use risc0_zkvm::serde;
-use waldo_core::merkle::MerkleTree;
-use waldo_core::{Journal, PrivateInput, VECTOR_ORACLE_CHANNEL};
+use waldo_core::merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL};
+use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Create a Merkle tree over the image bytes.
     // TODO: Chunk the bytes into reasonable sizes.
-    let img_bytes_merkle_tree = MerkleTree::<u8>::from_elements(img_bytes.iter().copied());
+    let img_bytes_merkle_tree = MerkleTree::<u8>::new(img_bytes);
 
     // Make the prover, loading the image crop method binary and method ID.
     let method_code = std::fs::read(IMAGE_CROP_PATH)?;
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .unwrap()
                 .try_into()
                 .unwrap();
-            let value = img_bytes[index];
+            let value = img_bytes_merkle_tree.elements()[index];
             let proof = img_bytes_merkle_tree.prove(index);
             bytemuck::cast_slice(&serde::to_vec(&(value, proof)).unwrap()).to_vec()
         },

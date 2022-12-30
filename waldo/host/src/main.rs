@@ -61,44 +61,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let journal: Journal = serde::from_slice(journal_vec.as_slice())?;
 
+    // TODO: Write out the image such that the user can look at it.
     println!(
-        "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}, {:?}",
-        journal.subsequence, journal.root, journal.image_dimensions
+        "Verified that {:?} is a crop of the image with dimensions {:?} and Merkle tree root {:?}",
+        journal.subsequence, journal.image_dimensions, journal.root
     );
 
     Ok(())
-    /*
-    // Multiply them inside the ZKP
-    // First, we make the prover, loading the 'multiply' method
-    let multiply_src = std::fs::read(MULTIPLY_PATH)
-        .expect("Method code should be present at the specified path; did you use the correct *_PATH constant?");
-    let mut prover = Prover::new(&multiply_src, MULTIPLY_ID).expect(
-        "Prover should be constructed from valid method source code and corresponding method ID",
-    );
-
-    // Next we send a & b to the guest
-    prover.add_input(to_vec(&a).unwrap().as_slice()).unwrap();
-    prover.add_input(to_vec(&b).unwrap().as_slice()).unwrap();
-    // Run prover & generate receipt
-    let receipt = prover.run()
-        .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");
-
-    // Extract journal of receipt (i.e. output c, where c = a * b)
-    let c: u64 = from_slice(
-        &receipt
-            .get_journal_vec()
-            .expect("Journal should be available for valid receipts"),
-    )
-    .expect("Journal output should deserialize into the same types (& order) that it was written");
-
-    // Print an assertion
-    println!("I know the factors of {}, and I can prove it!", c);
-
-    // Here is where one would send 'receipt' over the network...
-
-    // Verify receipt, panic if it's wrong
-    receipt.verify(MULTIPLY_ID).expect(
-        "Code you have proven should successfully verify; did you specify the correct method ID?",
-    );
-    */
 }

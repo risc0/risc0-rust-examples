@@ -2,7 +2,7 @@ use std::error::Error;
 
 use image::io::Reader as ImageReader;
 use image::ImageOutputFormat;
-use rand::RngCore;
+use rand::{Rng, RngCore};
 use risc0_zkvm::host::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL};
@@ -26,12 +26,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     */
 
     // Fill a buffer with random bytes.
-    let mut img_bytes = vec![0u8; 1 << 15];
-    rand::thread_rng().fill_bytes(&mut img_bytes);
+    let img_bytes: Vec<[u8; 3]> = (0..1 << 15).map(|_| rand::thread_rng().gen()).collect();
 
     // Create a Merkle tree over the image bytes.
     // TODO: Chunk the bytes into reasonable sizes.
-    let img_bytes_merkle_tree = MerkleTree::<u8>::new(img_bytes);
+    let img_bytes_merkle_tree = MerkleTree::<[u8; 3]>::new(img_bytes);
 
     // Make the prover, loading the image crop method binary and method ID.
     let method_code = std::fs::read(IMAGE_CROP_PATH)?;
@@ -50,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Send the merkle proof to the guest.
     let input = PrivateInput {
         root: img_bytes_merkle_tree.root(),
+        dimensions: (1 << 15, 1),
         range: 157..167,
     };
     prover.add_input(&serde::to_vec(&input)?)?;
@@ -64,8 +64,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let journal: Journal = serde::from_slice(journal_vec.as_slice())?;
 
     println!(
-        "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}",
-        journal.subsequence, journal.root,
+        "Verified that {:?} is a subsequence of a Merkle tree with root: {:?}, {:?}",
+        journal.subsequence, journal.root, journal.dimensions
     );
 
     Ok(())

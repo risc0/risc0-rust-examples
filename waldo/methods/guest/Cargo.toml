@@ -9,8 +9,8 @@ edition = "2021"
 risc0-build = "0.11"
 
 [dependencies]
-# image = { version = "0.24.5", features = ["webp", "png"], default-features = false }
 bytemuck = "1.12"
+image = { version = "0.24.5", default-features = false }
 merkle_light = "0.4"
 risc0-zkvm = { version = "0.11", default-features = false }
 risc0-zkvm-guest = "0.11"

@@ -307,8 +307,11 @@ where
 }
 
 #[cfg(feature = "zkvm-guest")]
-pub struct VectorOracle<Element> {
-    pub root: Node,
+pub struct VectorOracle<Element>
+where
+    Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
+{
+    root: Node,
     phantom_elem: PhantomData<Element>,
 }
 
@@ -349,6 +352,10 @@ where
         assert_eq!(index, proof.index());
         assert!(proof.verify(&self.root, &value));
         value
+    }
+
+    pub fn root(&self) -> &Node {
+        &self.root
     }
 }
 

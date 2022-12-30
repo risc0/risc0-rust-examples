@@ -1,11 +1,62 @@
 #![no_main]
 // #![no_std]
 
+use image::{GenericImageView, Rgb};
 use risc0_zkvm_guest::env;
-use waldo_core::merkle::VectorOracle;
+use waldo_core::merkle::{Node, VectorOracle};
 use waldo_core::{Journal, PrivateInput};
 
 risc0_zkvm_guest::entry!(main);
+
+/// ImageOracle provides verified access to an image held by the host.
+// NOTE: ImageOracle accesses, and verifies via Merkel proofs, parts of an image on a per-pixel basis.
+// This is likely to be highly innefficient compared to an approach that supports access on a less
+// granular basis (e.g. by chunking the image which the Merkle tree elements cooresponding to row
+// or square of the image)
+pub struct ImageOracle {
+    vector: VectorOracle<[u8; 3]>,
+    width: u32,
+    height: u32,
+}
+
+impl ImageOracle {
+    pub fn new(root: Node, width: u32, height: u32) -> Self {
+        Self {
+            vector: VectorOracle::<[u8; 3]>::new(root),
+            width,
+            height,
+        }
+    }
+
+    pub fn root(&self) -> &Node {
+        self.vector.root()
+    }
+}
+
+impl GenericImageView for ImageOracle {
+    type Pixel = Rgb<u8>;
+
+    fn dimensions(&self) -> (u32, u32) {
+        (self.width, self.height)
+    }
+
+    fn bounds(&self) -> (u32, u32, u32, u32) {
+        (0, 0, self.width, self.height)
+    }
+
+    fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
+        if x >= self.width || y >= self.height {
+            panic!(
+                "out of bound image access: ({}, {}) on {}x{} image",
+                x, y, self.width, self.height
+            );
+        }
+
+        self.vector
+            .get(usize::try_from(y * self.width + x).unwrap())
+            .into()
+    }
+}
 
 pub fn main() {
     // Read a Merkle proof from the host.
@@ -13,18 +64,14 @@ pub fn main() {
 
     // Initialize a Merkle tree based vector oracle, supporting verified access to a vector of data
     // on the host. Use the oracle to access a range of elements from the host.
-    let oracle = VectorOracle::<u8>::new(input.root);
-    let subsequence: Vec<_> = input
-        .range
-        // Convert range from u32 to usize, because integers are serialized as u32.
-        .map(|i| usize::try_from(i).unwrap())
-        .map(|i| oracle.get(i))
-        .collect();
+    let oracle = ImageOracle::new(input.root, input.dimensions.0, input.dimensions.1);
+    let subsequence: Vec<[u8; 3]> = input.range.map(|i| oracle.get_pixel(i, 0).0).collect();
 
     // Collect the verified public information into the journal.
     let journal = Journal {
         subsequence,
-        root: oracle.root,
+        root: *oracle.root(),
+        dimensions: oracle.dimensions(),
     };
     env::commit(&journal);
 }

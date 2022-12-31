@@ -19,7 +19,8 @@ pub struct ImageMerkleTree<const N: u32>(MerkleTree<Vec<u8>>);
 impl<const N: u32> ImageMerkleTree<N> {
     pub fn new(image: &DynamicImage) -> Self {
         // Iterate over the NxN chunks of an image in right to left, top to bottom, order.
-        // Convert the image into RGB8 as it is chunked.
+        // Convert the image into RGB8 as it is chunked. Access to the image will be to the
+        // underlying subpixels (i.e. bytes for RGB8).
         let chunks: Vec<Vec<u8>> = {
             (0..image.height())
                 .step_by(N.try_into().unwrap())

@@ -1,6 +1,7 @@
 #![no_main]
 // #![no_std]
 
+use divrem::{DivCeil, DivRem};
 use image::{imageops, GenericImageView, Rgb};
 use risc0_zkvm_guest::env;
 use waldo_core::merkle::{Node, VectorOracle};
@@ -9,21 +10,19 @@ use waldo_core::{Journal, PrivateInput};
 risc0_zkvm_guest::entry!(main);
 
 /// ImageOracle provides verified access to an image held by the host.
-// NOTE: ImageOracle accesses, and verifies via Merkel proofs, parts of an image on a per-pixel basis.
-// This is likely to be highly innefficient compared to an approach that supports access on a less
-// granular basis (e.g. by chunking the image which the Merkle tree elements cooresponding to row
-// or square of the image)
-pub struct ImageOracle {
-    vector: VectorOracle<[u8; 3]>,
+pub struct ImageOracle<const N: u32> {
+    vector: VectorOracle<Vec<u8>>,
     width: u32,
+    width_chunks: u32,
     height: u32,
 }
 
-impl ImageOracle {
+impl<const N: u32> ImageOracle<N> {
     pub fn new(root: Node, width: u32, height: u32) -> Self {
         Self {
-            vector: VectorOracle::<[u8; 3]>::new(root),
+            vector: VectorOracle::<Vec<u8>>::new(root),
             width,
+            width_chunks: width.div_ceil(N),
             height,
         }
     }
@@ -33,7 +32,7 @@ impl ImageOracle {
     }
 }
 
-impl GenericImageView for ImageOracle {
+impl<const N: u32> GenericImageView for ImageOracle<N> {
     type Pixel = Rgb<u8>;
 
     fn dimensions(&self) -> (u32, u32) {
@@ -52,8 +51,16 @@ impl GenericImageView for ImageOracle {
             );
         }
 
-        self.vector
-            .get(usize::try_from(y * self.width + x).unwrap())
+        let (x_chunk, x_offset) = x.div_rem(N);
+        let (y_chunk, y_offset) = y.div_rem(N);
+
+        let chunk = self
+            .vector
+            .get(usize::try_from(y_chunk * self.width_chunks + x_chunk).unwrap());
+
+        // DO NOT MERGE: Does not handle chunks on edges, where the width and heigh may not be N.
+        <[u8; 3]>::try_from(&chunk[usize::try_from((y_offset * N + x_offset) * 3).unwrap()..][..3])
+            .unwrap()
             .into()
     }
 }
@@ -64,7 +71,7 @@ pub fn main() {
 
     // Initialize a Merkle tree based vector oracle, supporting verified access to a vector of data
     // on the host. Use the oracle to access a range of elements from the host.
-    let oracle = ImageOracle::new(
+    let oracle = ImageOracle::<8>::new(
         input.root,
         input.image_dimensions.0,
         input.image_dimensions.1,

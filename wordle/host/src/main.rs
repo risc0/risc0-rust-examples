@@ -3,6 +3,7 @@ use std::io;
 use methods::{WORDLE_ID, WORDLE_PATH};
 use risc0_zkvm::host::{Prover, Receipt};
 use risc0_zkvm::serde::to_vec;
+use wordle_core::WORD_LENGTH;
 
 use crate::wordlist::words::pick_word;
 
@@ -71,12 +72,22 @@ impl Player {
 
 fn read_stdin_guess() -> String {
     let mut guess = String::new();
-    io::stdin().read_line(&mut guess).unwrap();
+    loop {
+        io::stdin().read_line(&mut guess).unwrap();
+        guess.pop(); // remove trailing newline
+
+        if guess.chars().count() == WORD_LENGTH {
+            break;
+        } else {
+            println!("Your guess must have 5 letters!");
+            guess.clear();
+        }
+    }
     guess
 }
 
 fn print_wordle_feedback(guess_word: &str, score: &Vec<u32>) {
-    for i in 0..5 {
+    for i in 0..WORD_LENGTH {
         match score[i] {
             0 => print!("\x1b[41m"), // correct: green
             1 => print!("\x1b[43m"), // present: yellow
@@ -85,6 +96,10 @@ fn print_wordle_feedback(guess_word: &str, score: &Vec<u32>) {
         print!("{:}", guess_word.chars().nth(i).unwrap());
     }
     println!("\x1b[0m");
+}
+
+fn game_is_won(score: Vec<u32>) -> bool {
+    return score.iter().all(|x| *x == 0u32);
 }
 
 fn main() {
@@ -102,7 +117,7 @@ fn main() {
         let receipt = server.check_round(guess_word.as_str());
         let score = player.check_receipt(receipt);
         print_wordle_feedback(guess_word.as_str(), &score);
-        if score.iter().all(|x| *x == 0u32) {
+        if game_is_won(score) {
             game_won = true;
             break;
         }

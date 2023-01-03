@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 methods = { path = "../methods" }
 clap = "4.0"
-risc0-zkp = "0.11"
-risc0-zkvm = "0.11"
+risc0-zkp = "1.0.0-rc.2"
+risc0-zkvm = "1.0.0-rc.2"
 serde = "1.0"

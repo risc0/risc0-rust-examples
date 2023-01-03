@@ -3,3 +3,6 @@ members = [
     "methods",
     "host",
 ]
+
+[patch.crates-io]
+downloader = { git = "https://github.com/hunger/downloader/", tag = "0.2.6" }

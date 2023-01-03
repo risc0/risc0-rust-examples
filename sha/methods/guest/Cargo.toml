@@ -6,7 +6,10 @@ edition = "2021"
 [workspace]
 
 [build-dependencies]
-risc0-build = "0.11"
+risc0-build = "1.0.0-rc.2"
 
 [dependencies]
-risc0-zkvm-guest = "0.11"
+risc0-zkvm = { version = "1.0.0-rc.2", features = ["std"], default-features = false }
+
+[patch.crates-io]
+downloader = { git = "https://github.com/hunger/downloader/", tag = "0.2.6" }

@@ -308,7 +308,8 @@ dependencies = [
 [[package]]
 name = "downloader"
 version = "0.2.6"
-source = "git+https://github.com/hunger/downloader/?tag=0.2.6#ae0828121dfca0cd54ea738643e27288c80dd867"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074093edfa907e8203c17c5111b04e114e03bde5ccdfa21a388fa4f34dabad96"
 dependencies = [
  "futures",
  "rand",
@@ -493,10 +494,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -866,17 +865,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-derive"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "num-integer"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1192,8 +1180,6 @@ dependencies = [
 [[package]]
 name = "risc0-build"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49e14584cdd1acde696ab3b1ef71a4ceba3037704007b5c687b84773c254f298"
 dependencies = [
  "cargo_metadata",
  "downloader",
@@ -1205,14 +1191,13 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
  "zip",
 ]
 
 [[package]]
 name = "risc0-circuit-rv32im"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c46dfc902044335854285efa3957bc5d920685f5956e29c3e1d4dd7bb6f8c53"
 dependencies = [
  "anyhow",
  "cc",
@@ -1230,8 +1215,6 @@ dependencies = [
 [[package]]
 name = "risc0-zeroio"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c3309486f071c5f92539fa68aebb79fb52513fa9d2568e02c768e1473ccaf52"
 dependencies = [
  "bytemuck",
  "impl-trait-for-tuples",
@@ -1243,8 +1226,6 @@ dependencies = [
 [[package]]
 name = "risc0-zeroio-derive"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a32348aaae33406a9af67005ec21c41e7830cf0033d238df1ce79c8a8cfa45c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1254,12 +1235,9 @@ dependencies = [
 [[package]]
 name = "risc0-zkp"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dac40b9d757fd9fa43dcb57bc7e19159c51c1d5f60be875bce00eb414ad87d1c"
 dependencies = [
  "anyhow",
  "bytemuck",
- "getrandom",
  "log",
  "metal",
  "ndarray",
@@ -1276,18 +1254,13 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f9e35977f2f3d60a388835a4e20a8f324546e1a8c63c5e3fcf116e63f24c38"
 dependencies = [
  "anyhow",
  "bytemuck",
  "cfg-if",
  "elf",
- "getrandom",
  "lazy-regex",
  "log",
- "num-derive",
- "num-traits",
  "rand",
  "rayon",
  "risc0-circuit-rv32im",
@@ -1296,15 +1269,12 @@ dependencies = [
  "risc0-zkvm-platform",
  "serde",
  "sha2",
- "thiserror",
  "tracing",
 ]
 
 [[package]]
 name = "risc0-zkvm-platform"
 version = "1.0.0-rc.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acaa971ead4bc99b1321ef1d477d60de76c78424811e3c7552d71e40124c41b0"
 
 [[package]]
 name = "ryu"

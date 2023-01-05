@@ -5,4 +5,6 @@ members = [
 ]
 
 [patch.crates-io]
-downloader = { git = "https://github.com/hunger/downloader/", tag = "0.2.6" }
+risc0-zkp = { path = "../../risc0/risc0/zkp" }
+risc0-zkvm = { path = "../../risc0/risc0/zkvm" }
+risc0-build = { path = "../../risc0/risc0/build" }

@@ -42,6 +42,7 @@ mod tests {
     use risc0_zkvm::serde::from_slice;
 
     use crate::provably_hash;
+    use sha2::Digest as Sha2Digest;
 
     #[test]
     fn main() {
@@ -51,11 +52,8 @@ mod tests {
         let digest = from_slice::<Digest>(receipt.journal.as_slice())
             .expect("Journal should contain SHA Digest");
         assert_eq!(
-            digest,
-            Digest::new([
-                0xba7816bf, 0x8f01cfea, 0x414140de, 0x5dae2223, 0xb00361a3, 0x96177a9c, 0xb410ff61,
-                0xf20015ad
-            ]),
+            digest.as_bytes(),
+            sha2::Sha256::digest("abc").as_slice(),
             "We expect to match the reference SHA-256 hash of the standard test value 'abc'"
         );
     }

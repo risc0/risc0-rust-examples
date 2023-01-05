@@ -7,8 +7,8 @@ edition = "2021"
 bytemuck = "1.12"
 image = { version = "0.24.5", features = ["webp", "png", "bmp"], default-features = false }
 rand = "0.8.5"
-risc0-zkp = "0.11"
-risc0-zkvm = "0.11"
+risc0-zkp = "1.0.0-rc.2"
+risc0-zkvm = "1.0.0-rc.2"
 serde = "1.0"
-waldo-core = { path = "../core", features = ["zkvm-host"] }
+waldo-core = { path = "../core" }
 waldo-methods = { path = "../methods" }

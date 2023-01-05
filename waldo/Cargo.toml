@@ -4,3 +4,10 @@ members = [
     "core",
     "host",
 ]
+
+[patch.crates-io]
+risc0-zkp = { path = "../../risc0/risc0/zkp" }
+risc0-zkvm = { path = "../../risc0/risc0/zkvm" }
+risc0-build = { path = "../../risc0/risc0/build" }
+risc0-zeroio = { path = "../../risc0/risc0/zeroio" }
+merkle_light = { path = "../../merkle_light/merkle" }

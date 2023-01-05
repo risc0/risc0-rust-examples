@@ -8,11 +8,10 @@ use bytemuck::{Pod, Zeroable};
 use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha, DIGEST_WORDS, DIGEST_WORD_SIZE};
+#[cfg(not(target_os = "zkvm"))]
 use risc0_zkp::core::sha_cpu;
-#[cfg(any(feature = "zkvm-guest", feature = "zkvm-host"))]
-use risc0_zkvm::serde as risc0_serde;
-#[cfg(feature = "zkvm-guest")]
-use risc0_zkvm_guest as guest;
+#[cfg(target_os = "zkvm")]
+use risc0_zkvm::guest;
 use serde::{Deserialize, Serialize};
 
 /// RISC0 channel identifier for providing oracle access to a vector to the guest from the host.
@@ -20,7 +19,7 @@ pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
 
 // Pick the appropriate implementation of SHA2-256 depending on whether we are in the zkVM guest.
 cfg_if::cfg_if! {
-    if #[cfg(all(target_os = "zkvm", feature = "zkvm-guest"))] {
+    if #[cfg(target_os = "zkvm")] {
         pub type ShaImpl = guest::sha::Impl;
     } else {
         pub type ShaImpl = sha_cpu::Impl;
@@ -56,23 +55,32 @@ where
     }
 }
 
-#[cfg(feature = "zkvm-host")]
+#[cfg(not(target_os = "zkvm"))]
 impl<Element> MerkleTree<Element>
 where
-    Element: Hashable<ShaHasher<ShaImpl>> + Serialize,
+    Element: Hashable<ShaHasher<ShaImpl>>
+        + Serialize
+        // Debug
+        + std::fmt::Debug
+        + Default
+        + std::cmp::PartialEq,
 {
     pub fn vector_oracle_callback<'a>(&'a self) -> impl Fn(u32, &[u8]) -> Vec<u8> + 'a {
         |channel_id, data| {
             // Callback function must only be registered as a callback for the VECTOR_ORACLE_CHANNEL.
             assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
             // NOTE: This would be nicer with we could avoid bytemuck.
-            let index: usize = risc0_serde::from_slice::<u32>(bytemuck::cast_slice(data))
+            let index: usize = bincode::deserialize::<u32>(data)
                 .unwrap()
                 .try_into()
                 .unwrap();
             let value = &self.elements()[index];
+
             let proof = self.prove(index);
-            bytemuck::cast_slice(&risc0_serde::to_vec(&(value, proof)).unwrap()).to_vec()
+
+            // Debug
+            assert!(proof.verify(&self.root(), &value));
+            bincode::serialize(&(value, proof)).unwrap()
         }
     }
 }
@@ -107,12 +115,20 @@ where
         // TOOD: Is this the best way of doing this? It requires the user to provide a root, which
         // avoids the sharp edge of forgetting to check against a fixed root, but may be less
         // flexible than it could be.
+
+        // DEBUG
+        //#[cfg(target_os = "zkvm")]
+        //{
+        //    assert_eq!(format!("root {:x?}", root), "")
+        //};
         if &self.inner.root() != root {
+            assert!(false);
             return false;
         }
 
         // Check that the path from the leaf matches the root.
         if !self.inner.validate::<ShaHasher<ShaImpl>>() {
+            assert!(false);
             return false;
         }
 
@@ -126,6 +142,7 @@ where
         algorithm.reset();
         let leaf_hash = algorithm.leaf(elem_hash);
 
+        assert!(leaf_hash == self.inner.item());
         leaf_hash == self.inner.item()
     }
 
@@ -193,10 +210,12 @@ where
 
 /// Wrapper on the RISC0 Digest type to allow it to act as a Merkle tree element.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Pod, Zeroable, Deserialize, Serialize)]
+// #[serde(from = "[u8; NODE_SIZE]", into = "[u8; NODE_SIZE]")]
 #[repr(transparent)]
 pub struct Node(Digest);
 
-const_assert_eq!(size_of::<Node>(), DIGEST_WORDS * DIGEST_WORD_SIZE);
+const NODE_SIZE: usize = DIGEST_WORDS * DIGEST_WORD_SIZE;
+const_assert_eq!(size_of::<Node>(), NODE_SIZE);
 
 /// Node is a wrapper around the RISC0 SHA2-256 digest type with the needed trait inmplementations
 /// to be used as a node in the merkle_light package.
@@ -204,13 +223,25 @@ impl Node {
     // Constructs the byte array digest value from big endian representation of the u32 words.
     // NOTE: I tested this on my (little endian) x86 machine. Have not tested it on a big endian
     // machine.
-    pub fn to_be_bytes(&self) -> [u8; size_of::<Self>()] {
-        let mut value = [0u8; size_of::<Self>()];
+    pub fn to_be_bytes(&self) -> [u8; NODE_SIZE] {
+        let mut value = [0u8; NODE_SIZE];
         for i in 0..DIGEST_WORDS {
             value[i * DIGEST_WORD_SIZE..(i + 1) * DIGEST_WORD_SIZE]
                 .copy_from_slice(&self.0.get()[i].to_be_bytes());
         }
         value
+    }
+
+    pub fn from_be_bytes(bytes: [u8; NODE_SIZE]) -> Self {
+        let mut value = [0u32; DIGEST_WORDS];
+        for i in 0..DIGEST_WORDS {
+            value[i] = u32::from_be_bytes(
+                bytes[i * DIGEST_WORD_SIZE..(i + 1) * DIGEST_WORD_SIZE]
+                    .try_into()
+                    .unwrap(),
+            );
+        }
+        Self::from(Digest::new(value))
     }
 }
 
@@ -248,6 +279,34 @@ impl Into<Digest> for Node {
     }
 }
 
+impl From<[u8; NODE_SIZE]> for Node {
+    fn from(bytes: [u8; NODE_SIZE]) -> Self {
+        #[cfg(target_os = "zkvm")]
+        {
+            Self::from_be_bytes(bytes)
+        }
+
+        #[cfg(not(target_os = "zkvm"))]
+        {
+            bytemuck::cast(bytes)
+        }
+    }
+}
+
+impl Into<[u8; NODE_SIZE]> for Node {
+    fn into(self) -> [u8; NODE_SIZE] {
+        #[cfg(target_os = "zkvm")]
+        {
+            self.to_be_bytes()
+        }
+
+        #[cfg(not(target_os = "zkvm"))]
+        {
+            bytemuck::cast(self)
+        }
+    }
+}
+
 /// ShaHasher is a wrapper around the RISC0 SHA2-256 implementations that implements the Algorithm
 /// trait for use with the merkle_light package.
 pub struct ShaHasher<H>
@@ -258,21 +317,25 @@ where
     sha: &'static H,
 }
 
+#[cfg(not(target_os = "zkvm"))]
+static CPU_SHA_IMPL: &'static sha_cpu::Impl = &sha_cpu::Impl {};
+
 // NOTE: It would be nice if Sha structs (or the trait) implemented Default.
 // Since it doesn't we need to impl default per struct implementation.
+#[cfg(not(target_os = "zkvm"))]
 impl Default for ShaHasher<sha_cpu::Impl> {
     fn default() -> Self {
         Self {
             data: Vec::new(),
-            sha: risc0_zkp::core::sha::default_implementation(),
+            sha: CPU_SHA_IMPL,
         }
     }
 }
 
-#[cfg(feature = "zkvm-guest")]
+#[cfg(target_os = "zkvm")]
 static ZKVM_SHA_IMPL: &'static guest::sha::Impl = &guest::sha::Impl {};
 
-#[cfg(feature = "zkvm-guest")]
+#[cfg(target_os = "zkvm")]
 impl Default for ShaHasher<guest::sha::Impl> {
     fn default() -> Self {
         Self {
@@ -302,11 +365,13 @@ where
 {
     fn hash(&mut self) -> Node {
         // NOTE: Does Sha need to be a struct rather than a static method?
-        Node(*self.sha.hash_bytes(&self.data))
+        let node = Node::from(*self.sha.hash_bytes(&self.data));
+        // println!("ShaHasher(data: {:x?}).hash() = {:x?}", &self.data, &node);
+        node
     }
 }
 
-#[cfg(feature = "zkvm-guest")]
+#[cfg(target_os = "zkvm")]
 pub struct VectorOracle<Element>
 where
     Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
@@ -315,10 +380,15 @@ where
     phantom_elem: PhantomData<Element>,
 }
 
-#[cfg(feature = "zkvm-guest")]
+#[cfg(target_os = "zkvm")]
 impl<Element> VectorOracle<Element>
 where
-    Element: Hashable<ShaHasher<ShaImpl>> + Deserialize<'static>,
+    Element: Hashable<ShaHasher<ShaImpl>>
+        + Deserialize<'static>
+        // Debug
+        + std::fmt::Debug
+        + Default
+        + std::cmp::PartialEq,
 {
     pub fn new(root: Node) -> Self {
         Self {
@@ -330,21 +400,19 @@ where
     // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
     // there is a valid, known, element at every index. Any out of bounds access or access to an
     // index for which there is no element will not return since no valid proof can be generated.
+    // NOTE: It would be better to use the tailored risc0_zeroio crate for this instead of serde.
     pub fn get(&self, index: usize) -> Element {
-        let (value, proof): (Element, Proof<Element>) = risc0_serde::from_slice(
+        let (value, proof): (Element, Proof<Element>) = bincode::deserialize(
             // Fetch the value and proof from the host by index.
             // NOTE: It would be nice if there was a wrapper for send_recv that looked more like
             // env::read(). A smaller step would be to have this method as take [u32] instead of [u8]
             // to avoid mucking around with the bytes.
             // TODO: Consider using bincode or another byte serializer instead of the u32 RISC0 format.
-            guest::env::send_recv_as_u32(
+            guest::env::send_recv(
                 VECTOR_ORACLE_CHANNEL,
                 // Cast to u32 before serializing since usize is an architecture dependent type.
-                bytemuck::cast_slice(
-                    &risc0_serde::to_vec(&(u32::try_from(index).unwrap())).unwrap(),
-                ),
-            )
-            .0,
+                &bincode::serialize(&(u32::try_from(index).unwrap())).unwrap(),
+            ),
         )
         .unwrap();
 
@@ -366,7 +434,7 @@ mod test {
     use super::*;
 
     /// Build and return a random Merkle tree with 1028 u32 elements.
-    fn random_merkle_tree() -> (Vec<u32>, MerkleTree<u32>) {
+    fn random_merkle_tree() -> MerkleTree<u32> {
         let item_count: usize = rand::thread_rng().gen_range((1 << 10)..(1 << 12));
         let items: Vec<u32> = (0..item_count).map(|_| rand::thread_rng().gen()).collect();
         MerkleTree::<u32>::new(items)
@@ -397,7 +465,7 @@ mod test {
     #[test]
     fn merkle_proof_index_works() {
         let tree = random_merkle_tree();
-        for (index, item) in tree.elements().iter().enumerate() {
+        for (index, _item) in tree.elements().iter().enumerate() {
             let proof = tree.prove(index);
             assert_eq!(proof.index(), index);
         }
@@ -417,6 +485,6 @@ mod test {
 
         // NOTE: This checks against the big endian representation of the digest, which is not what
         // is used by AsRef and therefore is also not what is used in the tree.
-        assert_eq!(hex::encode(r0_node.to_be_bytes()), hex::encode(rc_hash));
+        assert_eq!(hex::encode(r0_node), hex::encode(rc_hash));
     }
 }

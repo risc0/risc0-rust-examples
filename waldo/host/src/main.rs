@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use image::io::Reader as ImageReader;
 use image::{DynamicImage, GenericImageView};
-use risc0_zkvm::host::{Prover, ProverOpts};
+use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL};
 use waldo_core::{Journal, PrivateInput};
@@ -23,15 +23,11 @@ impl<const N: u32> ImageMerkleTree<N> {
         // underlying subpixels (i.e. bytes for RGB8).
         let chunks: Vec<Vec<u8>> = {
             (0..image.height())
-                .step_by(N.try_into().unwrap())
+                .step_by(usize::try_from(N).unwrap())
                 .map(|y| {
                     (0..image.width())
-                        .step_by(N.try_into().unwrap())
-                        .map(move |x| {
-                            DynamicImage::from(image.view(x, y, N, N).to_image())
-                                .into_rgb8()
-                                .into_raw()
-                        })
+                        .step_by(usize::try_from(N).unwrap())
+                        .map(move |x| image.crop_imm(x, y, N, N).into_rgb8().into_raw())
                 })
                 .flatten()
                 .collect()
@@ -81,24 +77,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = PrivateInput {
         root: img_merkle_tree.root(),
         image_dimensions: img.dimensions(),
-        crop_locaction: (1160, 300),
+        crop_location: (1152, 256),
         crop_dimensions: (1, 1),
     };
-    prover.add_input(&serde::to_vec(&input)?)?;
+    prover.add_input_u32_slice(&serde::to_vec(&input)?);
 
     // Run prover & generate receipt
     let receipt = prover.run()?;
 
     // Verify the receipt.
     receipt.verify(IMAGE_CROP_ID)?;
-    let journal_vec = receipt.get_journal_vec()?;
-
-    let journal: Journal = serde::from_slice(journal_vec.as_slice())?;
+    let journal: Journal = serde::from_slice(&receipt.journal)?;
 
     // TODO: Write out the image such that the user can look at it.
     println!(
         "Verified that {:?} is a crop of the image with dimensions {:?} and Merkle tree root {:?}",
-        journal.subsequence, journal.image_dimensions, journal.root
+        journal.subimage, journal.image_dimensions, journal.root
     );
 
     Ok(())

@@ -14,7 +14,7 @@ pub struct PrivateInput {
     pub image_dimensions: (u32, u32),
 
     /// X and y location for the top left corner of the crop.
-    pub crop_locaction: (u32, u32),
+    pub crop_location: (u32, u32),
 
     /// X and y location for the top left corner of the crop.
     pub crop_dimensions: (u32, u32),
@@ -22,7 +22,7 @@ pub struct PrivateInput {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Journal {
-    pub subsequence: Vec<[u8; 3]>,
+    pub subimage: Vec<u8>,
 
     /// Merkle tree root of the committed image.
     /// Must be checked against the root of the image that was expected to be cropped.

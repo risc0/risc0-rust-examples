@@ -1,20 +1,25 @@
 #![no_main]
 // #![no_std]
 
-use divrem::{DivCeil, DivRem};
-use image::{imageops, GenericImageView, Rgb};
-use risc0_zkvm_guest::env;
+use divrem::DivCeil;
+use image::{GenericImageView, Rgb};
+use risc0_zkvm::guest::env;
 use waldo_core::merkle::{Node, VectorOracle};
 use waldo_core::{Journal, PrivateInput};
 
-risc0_zkvm_guest::entry!(main);
+risc0_zkvm::guest::entry!(main);
 
 /// ImageOracle provides verified access to an image held by the host.
 pub struct ImageOracle<const N: u32> {
     vector: VectorOracle<Vec<u8>>,
     width: u32,
-    width_chunks: u32,
     height: u32,
+
+    crop_x: u32,
+    crop_y: u32,
+    crop_width: u32,
+    crop_height: u32,
+    crop_buffer: Vec<u8>,
 }
 
 impl<const N: u32> ImageOracle<N> {
@@ -22,9 +27,45 @@ impl<const N: u32> ImageOracle<N> {
         Self {
             vector: VectorOracle::<Vec<u8>>::new(root),
             width,
-            width_chunks: width.div_ceil(N),
             height,
+            crop_x: 0,
+            crop_y: 0,
+            crop_width: 0,
+            crop_height: 0,
+            crop_buffer: Vec::new(),
         }
+    }
+
+    pub fn load_crop(&mut self, x: u32, y: u32, width: u32, height: u32) {
+        assert!(self.in_bounds(x + width, y + height));
+
+        // Load the relevant chunks of the image from the host.
+        // NOTE: It would be nice to directly serialize into the buffer.
+        let width_chunks = DivCeil::div_ceil(self.width, N);
+        //let height_chunks = DivCeil::div_ceil(self.height, N);
+
+        // Crop buffer needs to be large enough to hold the chunks to be loaded.
+        self.crop_buffer = Vec::with_capacity(
+            usize::try_from(DivCeil::div_ceil(width, N) * N * DivCeil::div_ceil(height, N) * N * 3)
+                .unwrap(),
+        );
+
+        for y_chunk in (y / N)..DivCeil::div_ceil(y + height, N) {
+            for x_chunk in (x / N)..DivCeil::div_ceil(x + width, N) {
+                self.crop_buffer.extend_from_slice(
+                    &self
+                        .vector
+                        .get(usize::try_from(y_chunk * width_chunks + x_chunk).unwrap()),
+                );
+                assert!(false);
+            }
+        }
+
+        // Record the bounds of the cropped image.
+        self.crop_x = x;
+        self.crop_y = y;
+        self.crop_width = width;
+        self.crop_height = height;
     }
 
     pub fn root(&self) -> &Node {
@@ -43,25 +84,33 @@ impl<const N: u32> GenericImageView for ImageOracle<N> {
         (0, 0, self.width, self.height)
     }
 
+    #[inline(always)]
     fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
-        if x >= self.width || y >= self.height {
+        let crop_x = x - self.crop_x;
+        let crop_y = y - self.crop_y;
+
+        // TODO: Is it ok to rely upon a subtraction underflow causing a panic?
+        // NOTE: I could only check the width and rely on vector bounds checking for height.
+        if crop_x >= self.crop_width || crop_y >= self.crop_height {
             panic!(
-                "out of bound image access: ({}, {}) on {}x{} image",
-                x, y, self.width, self.height
+                "access out of loaded image bound: {:?} on {}x{} image with loaded bounds {:?}",
+                (x, y),
+                self.width,
+                self.height,
+                (
+                    self.crop_x,
+                    self.crop_y,
+                    self.crop_x + self.crop_width,
+                    self.crop_y + self.crop_height
+                ),
             );
         }
 
-        let (x_chunk, x_offset) = x.div_rem(N);
-        let (y_chunk, y_offset) = y.div_rem(N);
-
-        let chunk = self
-            .vector
-            .get(usize::try_from(y_chunk * self.width_chunks + x_chunk).unwrap());
-
-        // DO NOT MERGE: Does not handle chunks on edges, where the width and heigh may not be N.
-        <[u8; 3]>::try_from(&chunk[usize::try_from((y_offset * N + x_offset) * 3).unwrap()..][..3])
-            .unwrap()
-            .into()
+        <[u8; 3]>::try_from(
+            &self.crop_buffer[usize::try_from(crop_y * self.crop_width + crop_x).unwrap()..][..3],
+        )
+        .unwrap()
+        .into()
     }
 }
 
@@ -71,28 +120,35 @@ pub fn main() {
 
     // Initialize a Merkle tree based vector oracle, supporting verified access to a vector of data
     // on the host. Use the oracle to access a range of elements from the host.
-    let oracle = ImageOracle::<8>::new(
+    let mut oracle = ImageOracle::<8>::new(
         input.root,
         input.image_dimensions.0,
         input.image_dimensions.1,
     );
 
-    let crop = imageops::crop_imm(
-        &oracle,
-        input.crop_locaction.0,
-        input.crop_locaction.1,
+    // TODO: See if there is a better way to factor this.
+    oracle.load_crop(
+        input.crop_location.0,
+        input.crop_location.1,
         input.crop_dimensions.0,
         input.crop_dimensions.1,
     );
 
+    /*
+    let crop = imageops::crop_imm(
+        &oracle,
+        input.crop_location.0,
+        input.crop_location.1,
+        input.crop_dimensions.0,
+        input.crop_dimensions.1,
+    );
+    */
+
     // Collect the verified public information into the journal.
     let journal = Journal {
-        subsequence: crop
-            .pixels()
-            .map(|(_, _, pixel): (_, _, Rgb<u8>)| pixel.0)
-            .collect(),
         root: *oracle.root(),
         image_dimensions: oracle.dimensions(),
+        subimage: oracle.crop_buffer, // crop.to_image().into_raw(),
     };
     env::commit(&journal);
 }

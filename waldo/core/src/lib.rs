@@ -23,6 +23,9 @@ pub struct PrivateInput {
 pub struct Journal {
     pub subimage: Vec<u8>,
 
+    /// Width and height of the resulting subimage.
+    pub subimage_dimensions: (u32, u32),
+
     /// Merkle tree root of the committed image.
     /// Must be checked against the root of the image that was expected to be cropped.
     pub root: merkle::Node,

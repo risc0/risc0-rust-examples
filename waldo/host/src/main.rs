@@ -2,7 +2,7 @@ use std::error::Error;
 use std::ops::Deref;
 
 use image::io::Reader as ImageReader;
-use image::{DynamicImage, GenericImageView, RgbImage};
+use image::{DynamicImage, GenericImageView, RgbImage, ImageFormat};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::{IMAGE_CHUNK_SIZE, merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL}};
@@ -93,11 +93,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!(
         "Verified an with dimensions {:?} is a crop of the image with dimensions {:?} and Merkle tree root {:?}",
-        crop_dimensions, &journal.image_dimensions, &journal.root
+        journal.subimage_dimensions, journal.image_dimensions, &journal.root
     );
 
-    let subimage = RgbImage::from_raw(crop_dimensions.0, crop_dimensions.1, journal.subimage).ok_or("failed to load the returned subimage bytes into an image")?;
-    subimage.save("./waldo_cropped.png")?;
+    let subimage = RgbImage::from_raw(journal.subimage_dimensions.0, journal.subimage_dimensions.1, journal.subimage).ok_or("failed to load the returned subimage bytes into an image")?;
+    subimage.save_with_format("./waldo_cropped.png", ImageFormat::Png)?;
 
     Ok(())
 }

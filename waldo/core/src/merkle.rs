@@ -262,6 +262,8 @@ where
     phantom_elem: PhantomData<Element>,
 }
 
+// TODO: Provide a version of this primative that is designed to provide oracle access to bytes as
+// &'static [u8] references instead of serializing and deserializing vectors.
 #[cfg(target_os = "zkvm")]
 impl<Element> VectorOracle<Element>
 where

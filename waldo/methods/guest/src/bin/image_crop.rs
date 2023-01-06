@@ -1,7 +1,7 @@
 #![no_main]
 // #![no_std]
 
-use divrem::{DivCeil, DivFloor};
+use divrem::{DivCeil, DivFloor, DivRem};
 use image::{imageops, GenericImageView, Rgb};
 use risc0_zkvm::guest::env;
 use waldo_core::merkle::{Node, VectorOracle};
@@ -16,11 +16,14 @@ pub struct ImageOracle<const N: u32> {
     height: u32,
 
     // Fields related to the loaded subimage.
-    crop_x: u32,
-    crop_y: u32,
-    crop_width: u32,
-    crop_height: u32,
-    crop_buffer: Vec<u8>,
+    // TODO: Rename fields
+    cache_chunk_x_min: u32,
+    cache_chunk_x_max: u32,
+    cache_chunk_width: u32,
+    cache_chunk_y_min: u32,
+    cache_chunk_y_max: u32,
+    cache_chunk_height: u32,
+    cache_chunks: Vec<Vec<u8>>,
 }
 
 impl<const N: u32> ImageOracle<N> {
@@ -29,11 +32,13 @@ impl<const N: u32> ImageOracle<N> {
             chunks: VectorOracle::<Vec<u8>>::new(root),
             width,
             height,
-            crop_x: 0,
-            crop_y: 0,
-            crop_width: 0,
-            crop_height: 0,
-            crop_buffer: Vec::new(),
+            cache_chunk_x_min: 0,
+            cache_chunk_x_max: 0,
+            cache_chunk_width: 0,
+            cache_chunk_y_min: 0,
+            cache_chunk_y_max: 0,
+            cache_chunk_height: 0,
+            cache_chunks: Vec::new(),
         }
     }
 
@@ -47,27 +52,25 @@ impl<const N: u32> ImageOracle<N> {
 
         // Crop buffer needs to be large enough to hold the chunks to be loaded. Each chunk is
         // overlapped by the crop area will need to be loaded.
-        let overlap_width = (DivCeil::div_ceil(x + width, N) - DivFloor::div_floor(x, N)) * N;
-        let overlap_height = (DivCeil::div_ceil(y + height, N) - DivFloor::div_floor(y, N)) * N;
-        self.crop_buffer = Vec::with_capacity(usize::try_from(overlap_width * overlap_height * 3 ).unwrap());
+        self.cache_chunk_x_min = DivFloor::div_floor(x, N);
+        self.cache_chunk_x_max = DivCeil::div_ceil(x + width, N);
+        self.cache_chunk_y_min = DivFloor::div_floor(y, N);
+        self.cache_chunk_y_max = DivCeil::div_ceil(y + height, N);
+        self.cache_chunk_width = self.cache_chunk_x_max - self.cache_chunk_x_min;
+        self.cache_chunk_height = self.cache_chunk_y_max - self.cache_chunk_y_min;
+        self.cache_chunks = Vec::with_capacity(usize::try_from(self.cache_chunk_width * self.cache_chunk_height).unwrap());
 
         // Load into the struct buffer all chunks overlapped by the indicated rectangle.
-        let width_chunks = DivCeil::div_ceil(self.width, N);
-        for y_chunk in (y / N)..DivCeil::div_ceil(y + height, N) {
-            for x_chunk in (x / N)..DivCeil::div_ceil(x + width, N) {
-                self.crop_buffer.extend_from_slice(
-                    &self
+        let image_width_chunks = DivCeil::div_ceil(self.width, N);
+        for y_chunk in self.cache_chunk_y_min..self.cache_chunk_y_max {
+            for x_chunk in self.cache_chunk_x_min..self.cache_chunk_x_max {
+                self.cache_chunks.push(
+                    self
                         .chunks
-                        .get(usize::try_from(y_chunk * width_chunks + x_chunk).unwrap()),
+                        .get(usize::try_from(y_chunk * image_width_chunks + x_chunk).unwrap()),
                 );
             }
         }
-
-        // Record the bounds of the cropped image.
-        self.crop_x = x;
-        self.crop_y = y;
-        self.crop_width = width;
-        self.crop_height = height;
     }
 
     pub fn root(&self) -> &Node {
@@ -88,29 +91,32 @@ impl<const N: u32> GenericImageView for ImageOracle<N> {
 
     #[inline(always)]
     fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
-        // Calculate the coordinates within the loaded crop boundaries.
-        let crop_x = x.checked_sub(self.crop_x).unwrap();
-        let crop_y = y.checked_sub(self.crop_y).unwrap();
+        // Calculate split x and y into the chunk selector portion and offset.
+        let (x_chunk, x_offset) = DivRem::div_rem(x, N);
+        let (y_chunk, y_offset) = DivRem::div_rem(y, N);
 
         // Check that the pixel location is in bounds. Only need to check width since overruning
         // the height will result in a panic due to out of bounds slice indexing.
-        if crop_x >= self.crop_width {
+        if x_chunk < self.cache_chunk_x_min || x_chunk >= self.cache_chunk_x_max {
             panic!(
                 "access out of loaded image bound: {:?} on {}x{} image with loaded bounds {:?}",
                 (x, y),
                 self.width,
                 self.height,
                 (
-                    self.crop_x,
-                    self.crop_y,
-                    self.crop_x + self.crop_width,
-                    self.crop_y + self.crop_height
+                    self.cache_chunk_x_min * N,
+                    self.cache_chunk_x_max * N,
+                    self.cache_chunk_y_min * N,
+                    self.cache_chunk_y_max * N,
                 ),
             );
         }
 
+        let chunk = &self.cache_chunks[usize::try_from(y_chunk.checked_sub(self.cache_chunk_y_min).unwrap() * self.cache_chunk_width + x_chunk.checked_sub(self.cache_chunk_x_min).unwrap()).unwrap()];
+
+        // FIXME: Does not handle access at the edge of the image.
         <[u8; 3]>::try_from(
-            &self.crop_buffer[usize::try_from(crop_y * self.crop_width + crop_x).unwrap()..][..3],
+            &chunk[usize::try_from(y_offset * N + x_offset).unwrap() * 3..][..3],
         )
         .unwrap()
         .into()
@@ -149,8 +155,8 @@ pub fn main() {
     let journal = Journal {
         root: *oracle.root(),
         image_dimensions: oracle.dimensions(),
-        //subimage: oracle.crop_buffer,
         subimage: crop.to_image().into_raw(),
+        subimage_dimensions: input.crop_dimensions,
     };
     env::commit(&journal);
 }

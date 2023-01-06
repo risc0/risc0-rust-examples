@@ -2,7 +2,7 @@ use std::error::Error;
 use std::ops::Deref;
 
 use image::io::Reader as ImageReader;
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, RgbImage};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::{IMAGE_CHUNK_SIZE, merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL}};
@@ -74,11 +74,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     // Send the merkle proof to the guest.
+    let crop_dimensions = (58, 64);
+    let crop_location = (1150, 291);
     let input = PrivateInput {
         root: img_merkle_tree.root(),
         image_dimensions: img.dimensions(),
-        crop_location: (1150, 291),
-        crop_dimensions: (58, 64),
+        crop_location,
+        crop_dimensions,
     };
     prover.add_input_u32_slice(&serde::to_vec(&input)?);
 
@@ -89,11 +91,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     receipt.verify(IMAGE_CROP_ID)?;
     let journal: Journal = serde::from_slice(&receipt.journal)?;
 
-    // TODO: Write out the image such that the user can look at it.
     println!(
-        "Verified that {:?} is a crop of the image with dimensions {:?} and Merkle tree root {:?}",
-        journal.subimage, journal.image_dimensions, journal.root
+        "Verified an with dimensions {:?} is a crop of the image with dimensions {:?} and Merkle tree root {:?}",
+        crop_dimensions, &journal.image_dimensions, &journal.root
     );
+
+    let subimage = RgbImage::from_raw(crop_dimensions.0, crop_dimensions.1, journal.subimage).ok_or("failed to load the returned subimage bytes into an image")?;
+    subimage.save("./waldo_cropped.png")?;
 
     Ok(())
 }

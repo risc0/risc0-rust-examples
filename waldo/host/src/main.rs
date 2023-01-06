@@ -5,7 +5,7 @@ use image::io::Reader as ImageReader;
 use image::{DynamicImage, GenericImageView};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
-use waldo_core::merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL};
+use waldo_core::{IMAGE_CHUNK_SIZE, merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL}};
 use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         img.height()
     );
 
-    let img_merkle_tree = ImageMerkleTree::<8>::new(&img);
+    let img_merkle_tree = ImageMerkleTree::<{IMAGE_CHUNK_SIZE}>::new(&img);
 
     // Make the prover, loading the image crop method binary and method ID, and registerig a
     // send_recv callback to communicate vector oracle data from the Merkle tree.
@@ -77,8 +77,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = PrivateInput {
         root: img_merkle_tree.root(),
         image_dimensions: img.dimensions(),
-        crop_location: (1152, 256),
-        crop_dimensions: (1, 1),
+        crop_location: (1150, 291),
+        crop_dimensions: (58, 64),
     };
     prover.add_input_u32_slice(&serde::to_vec(&input)?);
 

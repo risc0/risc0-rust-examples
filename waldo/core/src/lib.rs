@@ -1,8 +1,7 @@
 pub mod merkle;
+pub mod image;
 
 use serde::{Deserialize, Serialize};
-
-pub const IMAGE_CHUNK_SIZE: u32 = 8;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrivateInput {

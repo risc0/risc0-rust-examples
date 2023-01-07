@@ -1,49 +1,12 @@
 use std::error::Error;
-use std::ops::Deref;
-
 use image::io::Reader as ImageReader;
-use image::{DynamicImage, GenericImageView, RgbImage, ImageFormat};
+use image::{RgbImage, GenericImageView, ImageFormat};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
-use waldo_core::{IMAGE_CHUNK_SIZE, merkle::{MerkleTree, VECTOR_ORACLE_CHANNEL}};
+use waldo_core::merkle::VECTOR_ORACLE_CHANNEL;
+use waldo_core::image::{IMAGE_CHUNK_SIZE, ImageMerkleTree};
 use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
-
-/// ImageMerkleTree is a merklization of an image, constructed with the leaf elements being NxN
-/// square chunks.
-///
-/// Chunks on the right and bottom boundaries will be incomplete if the width or
-/// height cannot be divided by N.
-pub struct ImageMerkleTree<const N: u32>(MerkleTree<Vec<u8>>);
-
-impl<const N: u32> ImageMerkleTree<N> {
-    pub fn new(image: &DynamicImage) -> Self {
-        // Iterate over the NxN chunks of an image in right to left, top to bottom, order.
-        // Convert the image into RGB8 as it is chunked. Access to the image will be to the
-        // underlying subpixels (i.e. bytes for RGB8).
-        let chunks: Vec<Vec<u8>> = {
-            (0..image.height())
-                .step_by(usize::try_from(N).unwrap())
-                .map(|y| {
-                    (0..image.width())
-                        .step_by(usize::try_from(N).unwrap())
-                        .map(move |x| image.crop_imm(x, y, N, N).into_rgb8().into_raw())
-                })
-                .flatten()
-                .collect()
-        };
-
-        Self(MerkleTree::new(chunks))
-    }
-}
-
-impl<const N: u32> Deref for ImageMerkleTree<N> {
-    type Target = MerkleTree<Vec<u8>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Read the image from disk.

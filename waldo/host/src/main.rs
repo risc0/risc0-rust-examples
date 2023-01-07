@@ -1,10 +1,11 @@
 use std::error::Error;
+
 use image::io::Reader as ImageReader;
-use image::{RgbImage, GenericImageView, ImageFormat};
+use image::{GenericImageView, ImageFormat, RgbImage};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
+use waldo_core::image::{ImageMerkleTree, IMAGE_CHUNK_SIZE};
 use waldo_core::merkle::VECTOR_ORACLE_CHANNEL;
-use waldo_core::image::{IMAGE_CHUNK_SIZE, ImageMerkleTree};
 use waldo_core::{Journal, PrivateInput};
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 
@@ -19,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         img.height()
     );
 
-    let img_merkle_tree = ImageMerkleTree::<{IMAGE_CHUNK_SIZE}>::new(&img);
+    let img_merkle_tree = ImageMerkleTree::<{ IMAGE_CHUNK_SIZE }>::new(&img);
 
     // Make the prover, loading the image crop method binary and method ID, and registerig a
     // send_recv callback to communicate vector oracle data from the Merkle tree.
@@ -59,7 +60,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         journal.subimage_dimensions, journal.image_dimensions, &journal.root
     );
 
-    let subimage = RgbImage::from_raw(journal.subimage_dimensions.0, journal.subimage_dimensions.1, journal.subimage).ok_or("failed to load the returned subimage bytes into an image")?;
+    let subimage = RgbImage::from_raw(
+        journal.subimage_dimensions.0,
+        journal.subimage_dimensions.1,
+        journal.subimage,
+    )
+    .ok_or("failed to load the returned subimage bytes into an image")?;
     subimage.save_with_format("./waldo_cropped.png", ImageFormat::Png)?;
 
     Ok(())

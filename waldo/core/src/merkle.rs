@@ -7,11 +7,10 @@ use bytemuck::{Pod, Zeroable};
 use merkle_light::hash::{Algorithm, Hashable};
 use merkle_light::{merkle, proof};
 use risc0_zkp::core::sha::{Digest, Sha};
-use serde::{Deserialize, Serialize};
-use risc0_zkvm::sha::sha;
-
 #[cfg(target_os = "zkvm")]
 use risc0_zkvm::guest;
+use risc0_zkvm::sha::sha;
+use serde::{Deserialize, Serialize};
 
 /// RISC0 channel identifier for providing oracle access to a vector to the guest from the host.
 pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
@@ -48,7 +47,7 @@ where
 #[cfg(not(target_os = "zkvm"))]
 impl<Element> MerkleTree<Element>
 where
-    Element: Hashable<ShaHasher> + Serialize
+    Element: Hashable<ShaHasher> + Serialize,
 {
     pub fn vector_oracle_callback<'a>(&'a self) -> impl Fn(u32, &[u8]) -> Vec<u8> + 'a {
         |channel_id, data| {
@@ -246,8 +245,7 @@ impl Hasher for ShaHasher {
     }
 }
 
-impl Algorithm<Node> for ShaHasher
-{
+impl Algorithm<Node> for ShaHasher {
     fn hash(&mut self) -> Node {
         Node::from(*sha().hash_bytes(&self.data))
     }
@@ -267,7 +265,7 @@ where
 #[cfg(target_os = "zkvm")]
 impl<Element> VectorOracle<Element>
 where
-    Element: Hashable<ShaHasher> + Deserialize<'static>
+    Element: Hashable<ShaHasher> + Deserialize<'static>,
 {
     pub fn new(root: Node) -> Self {
         Self {

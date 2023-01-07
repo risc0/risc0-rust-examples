@@ -1,7 +1,8 @@
 use std::ops::Deref;
 
-use image::{DynamicImage};
-use crate::merkle::{MerkleTree};
+use image::DynamicImage;
+
+use crate::merkle::MerkleTree;
 
 /// Recommended default chunk size to use in the ImageMerkleTree and ImageOracle.
 pub const IMAGE_CHUNK_SIZE: u32 = 8;
@@ -48,9 +49,10 @@ impl<const N: u32> Deref for ImageMerkleTree<N> {
 /// ImageOracle provides verified access to an image held by the host.
 #[cfg(target_os = "zkvm")]
 mod zkvm {
-    use crate::merkle::{VectorOracle, Node};
     use divrem::{DivCeil, DivFloor, DivRem};
     use image::{GenericImageView, Rgb};
+
+    use crate::merkle::{Node, VectorOracle};
 
     pub struct ImageOracle<const N: u32> {
         chunks: VectorOracle<Vec<u8>>,
@@ -101,15 +103,16 @@ mod zkvm {
             self.cache_chunk_y_max = DivCeil::div_ceil(y + height, N);
             self.cache_chunk_width = self.cache_chunk_x_max - self.cache_chunk_x_min;
             self.cache_chunk_height = self.cache_chunk_y_max - self.cache_chunk_y_min;
-            self.cache_chunks = Vec::with_capacity(usize::try_from(self.cache_chunk_width * self.cache_chunk_height).unwrap());
+            self.cache_chunks = Vec::with_capacity(
+                usize::try_from(self.cache_chunk_width * self.cache_chunk_height).unwrap(),
+            );
 
             // Load into the struct buffer all chunks overlapped by the indicated rectangle.
             let image_width_chunks = DivCeil::div_ceil(self.width, N);
             for y_chunk in self.cache_chunk_y_min..self.cache_chunk_y_max {
                 for x_chunk in self.cache_chunk_x_min..self.cache_chunk_x_max {
                     self.cache_chunks.push(
-                        self
-                            .chunks
+                        self.chunks
                             .get(usize::try_from(y_chunk * image_width_chunks + x_chunk).unwrap()),
                     );
                 }
@@ -156,7 +159,11 @@ mod zkvm {
                 );
             }
 
-            let chunk = &self.cache_chunks[usize::try_from(y_chunk.checked_sub(self.cache_chunk_y_min).unwrap() * self.cache_chunk_width + x_chunk.checked_sub(self.cache_chunk_x_min).unwrap()).unwrap()];
+            let chunk = &self.cache_chunks[usize::try_from(
+                y_chunk.checked_sub(self.cache_chunk_y_min).unwrap() * self.cache_chunk_width
+                    + x_chunk.checked_sub(self.cache_chunk_x_min).unwrap(),
+            )
+            .unwrap()];
 
             // FIXME: Does not handle access at the edge of the image.
             <[u8; 3]>::try_from(

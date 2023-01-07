@@ -1,5 +1,5 @@
-pub mod merkle;
 pub mod image;
+pub mod merkle;
 
 use serde::{Deserialize, Serialize};
 

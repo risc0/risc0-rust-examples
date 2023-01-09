@@ -6,7 +6,6 @@ members = [
 ]
 
 [profile.release]
-lto = true
 opt-level = 3
 
 [patch.crates-io]

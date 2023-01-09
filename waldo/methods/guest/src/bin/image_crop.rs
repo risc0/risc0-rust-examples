@@ -14,18 +14,10 @@ pub fn main() {
 
     // Initialize a Merkle tree based vector oracle, supporting verified access to a vector of data
     // on the host. Use the oracle to access a range of elements from the host.
-    let mut oracle = ImageOracle::<{IMAGE_CHUNK_SIZE}>::new(
+    let oracle = ImageOracle::<{ IMAGE_CHUNK_SIZE }>::new(
         input.root,
         input.image_dimensions.0,
         input.image_dimensions.1,
-    );
-
-    // TODO: See if there is a better way to factor this.
-    oracle.load_crop(
-        input.crop_location.0,
-        input.crop_location.1,
-        input.crop_dimensions.0,
-        input.crop_dimensions.1,
     );
 
     let crop = imageops::crop_imm(

@@ -16,6 +16,8 @@ pub struct PrivateInput {
 
     /// X and y location for the top left corner of the crop.
     pub crop_dimensions: (u32, u32),
+
+    pub mask: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -101,7 +101,6 @@ mod zkvm {
         }
     }
 
-    #[cfg(target_os = "zkvm")]
     impl<const N: u32> GenericImageView for ImageOracle<N> {
         type Pixel = Rgb<u8>;
 

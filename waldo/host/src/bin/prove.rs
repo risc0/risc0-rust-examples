@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use image::io::Reader as ImageReader;
-use image::GenericImageView;
+use image::{imageops, GenericImageView};
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
 use waldo_core::image::{ImageMerkleTree, IMAGE_CHUNK_SIZE};
@@ -16,8 +16,13 @@ use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Input file path to the full Where's Waldo image.
-    #[clap(short, long, value_parser, value_hint = clap::ValueHint::FilePath)]
+    #[clap(short = 'i', long, value_parser, value_hint = clap::ValueHint::FilePath)]
     image: PathBuf,
+
+    /// Optional input file path to an image mask to apply to Waldo.
+    /// Must be the same dimensions, in pixels, as the cut out x and y.
+    #[clap(short = 'm', long, value_parser, value_hint = clap::ValueHint::FilePath)]
+    mask: Option<PathBuf>,
 
     /// X coordinate, in pixels from the top-left corner, of Waldo.
     #[clap(short = 'x', long, value_parser)]
@@ -52,8 +57,46 @@ fn main() -> Result<(), Box<dyn Error>> {
         img.height()
     );
 
+    // Send the merkle proof to the guest.
+    let crop_location = (args.waldo_x, args.waldo_y);
+    let crop_dimensions = (args.waldo_width, args.waldo_height);
+
+    // Read the image mask from disk, if provided.
+    let mask = args.mask.map_or(Ok::<_, Box<dyn Error>>(None), |path| {
+        // Read the image mask from disk. Reads any format and color image.
+        let mut mask_source = ImageReader::open(&path)?.decode()?;
+        if mask_source.dimensions() != crop_dimensions {
+            return Err(format!(
+                "mask dimensions do not match specified height and width for Waldo: {:?} != {:?}",
+                mask_source.dimensions(),
+                crop_dimensions
+            )
+            .into());
+        }
+        println!("Read image mask at {}", &path.display(),);
+
+        // Create the mask by inverting the colors, then converting to grayscale, so dark pixels
+        // will mask out pixels in the base image.
+        imageops::colorops::invert(&mut mask_source);
+        let mask = mask_source.into_luma8();
+        Ok(Some(mask.into_raw()))
+    })?;
+
     // Construct a Merkle tree from the Where's Waldo image.
     let img_merkle_tree = ImageMerkleTree::<{ IMAGE_CHUNK_SIZE }>::new(&img);
+
+    println!(
+        "Created Merkle tree from image with root {:?}",
+        img_merkle_tree.root(),
+    );
+
+    let input = PrivateInput {
+        root: img_merkle_tree.root(),
+        image_dimensions: img.dimensions(),
+        mask,
+        crop_location,
+        crop_dimensions,
+    };
 
     // Make the prover, loading the image crop method binary and method ID, and registering a
     // send_recv callback to communicate vector oracle data from the Merkle tree.
@@ -63,21 +106,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         img_merkle_tree.vector_oracle_callback(),
     );
     let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
-
-    println!(
-        "Created Merkle tree from image with root {:?}",
-        img_merkle_tree.root(),
-    );
-
-    // Send the merkle proof to the guest.
-    let crop_location = (args.waldo_x, args.waldo_y);
-    let crop_dimensions = (args.waldo_width, args.waldo_height);
-    let input = PrivateInput {
-        root: img_merkle_tree.root(),
-        image_dimensions: img.dimensions(),
-        crop_location,
-        crop_dimensions,
-    };
     prover.add_input_u32_slice(&serde::to_vec(&input)?);
 
     println!(

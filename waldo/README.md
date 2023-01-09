@@ -11,9 +11,9 @@ First, make sure [rustup](https://rustup.rs) is installed. This project uses a [
 
 To build and run this example, try using the following commands.
 
-```
+```bash
 # Prove that you know where Waldo is in waldo.webp
-cargo run --release --bin prove -- -i waldo.webp -x 1150 -y 291 -w 58 -h 64
+cargo run --release --bin prove -- -i waldo.webp -x 1150 -y 291 -w 58 -h 70 -m waldo_mask.png
 
 # Verify that the prover actually found Waldo.
 cargo run --release --bin verify -- -i waldo.webp -r receipt.bin

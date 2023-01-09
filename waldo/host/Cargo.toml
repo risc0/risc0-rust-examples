@@ -12,5 +12,6 @@ rand = "0.8.5"
 risc0-zkp = "1.0.0-rc.2"
 risc0-zkvm = { version = "1.0.0-rc.2", default-features = false, features = ["std", "prove", "metal"] }
 serde = "1.0"
+viuer = "0.6"
 waldo-core = { path = "../core" }
 waldo-methods = { path = "../methods" }

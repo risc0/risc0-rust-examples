@@ -85,10 +85,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         journal.subimage,
     )
     .ok_or("failed to load the returned subimage bytes into an image")?;
-    subimage.save(&args.waldo)?;
 
+    // Save the image to disk for the verifier to inspect.
+    subimage.save(&args.waldo)?;
     println!("Saved Waldo cutout to {}", &args.waldo.display());
-    println!("CRITICAL: Make sure to visually inspect the Waldo to ensure its not an imposter!",);
+
+    // Display the image in the terminal for them to see whether it's Waldo.
+    let viuer_config = viuer::Config {
+        absolute_offset: false,
+        ..Default::default()
+    };
+    viuer::print_from_file(&args.waldo, &viuer_config)?;
+    println!("Prover knows where this cutout is in the given image.");
+    println!("Do you recognize this Waldo?");
 
     Ok(())
 }

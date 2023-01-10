@@ -66,7 +66,6 @@ impl<const N: u32> ImageMerkleTree<N> {
     }
 }
 
-/// ImageOracle provides verified access to an image held by the host.
 #[cfg(target_os = "zkvm")]
 mod zkvm {
     use divrem::{DivCeil, DivRem};
@@ -76,6 +75,9 @@ mod zkvm {
     use super::ImageChunk;
     use crate::merkle::{Node, VectorOracle};
 
+    /// ImageOracle provides verified access to an image held by the host and implements
+    /// image::GenericImageView so that functions from the image crate, and those built against
+    /// it's API, can be applied to the ImageOracle.
     pub struct ImageOracle<const N: u32> {
         chunks: VectorOracle<ImageChunk>,
 

@@ -28,6 +28,10 @@ struct Args {
     /// not some barber pole!
     #[clap(short = 'o', long, value_parser, default_value = "./waldo_cutout.png", value_hint = clap::ValueHint::FilePath)]
     waldo: PathBuf,
+
+    /// Flag to display displaying the Waldo cutout in the terminal.
+    #[clap(long)]
+    no_display: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -90,14 +94,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     subimage.save(&args.waldo)?;
     println!("Saved Waldo cutout to {}", &args.waldo.display());
 
-    // Display the image in the terminal for them to see whether it's Waldo.
-    let viuer_config = viuer::Config {
-        absolute_offset: false,
-        ..Default::default()
-    };
-    viuer::print_from_file(&args.waldo, &viuer_config)?;
-    println!("Prover knows where this cutout is in the given image.");
-    println!("Do you recognize this Waldo?");
+    if args.no_display {
+        println!(
+            "IMPORTANT: Verify that the cutout in {} contains Waldo.",
+            &args.waldo.display()
+        );
+    } else {
+        // Display the image in the terminal for them to see whether it's Waldo.
+        let viuer_config = viuer::Config {
+            absolute_offset: false,
+            ..Default::default()
+        };
+        viuer::print_from_file(&args.waldo, &viuer_config)?;
+        println!("Prover knows where this cutout is in the given image.");
+        println!("Do you recognize this Waldo?");
+    }
 
     Ok(())
 }

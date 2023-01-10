@@ -15,3 +15,7 @@ To build all methods and execute the method within the zkVM, run the following c
 ```
 cargo run
 ```
+
+## Video Tutorial
+
+For a walk-through of this example, check out this [excerpt from our workshop at ZK HACK III](https://www.youtube.com/watch?v=nWxL21hKV9s&list=PLcPzhUaCxlCgig7ofeARMPwQ8vbuD6hC5&index=3).

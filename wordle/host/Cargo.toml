@@ -1,0 +1,12 @@
+[package]
+name = "starter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+methods = { path = "../methods" }
+risc0-zkvm = "0.11"
+risc0-zkp = "0.11"
+wordle-core = { path = "../core" }
+serde = "1.0"
+rand = "0.8.5"

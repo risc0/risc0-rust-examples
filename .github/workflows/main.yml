@@ -22,6 +22,7 @@ jobs:
           - password-checker
           - sha
           - voting-machine
+          - wordle
         os: [Linux, macOS]
     runs-on: [self-hosted, "${{ matrix.os }}"]
     steps:

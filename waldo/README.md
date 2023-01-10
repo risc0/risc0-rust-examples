@@ -47,16 +47,16 @@ set of authorized users.
 In the RISC0 zkVM system, the guest and host can communicate over using channels at runtime.
 These channels are currently used to implement the `env::read` and `env::commit` functions in the guest,
 and the developer can create new channels for their own needs. In this example, a channel is used to
-allow the guest to request chunks of the Where's Waldo image on-demand as a part of the `MerkleTree`
+allow the guest to request chunks of the Where's Waldo image on demand as a part of the `MerkleTree`
 and `VectorOracle` types. Using these channels allows us to write more flexible code that is more
-readble and follows familiar paradigms.
+readable and follows familiar paradigms.
 
 ### Image Manipulation
 
-In order to manipulate the image and cut out waldo, in particular cropping and applying a mask, this
+In order to manipulate the image and cut-out Waldo, and in particular to crop and apply a mask, this
 example utilizes the popular `image` crate. This is enabled by implementing
 `image::GenericImageView` on `ImageOracle`. With that trait, many of the image operations provided
-in the `image` crate, and by [others], can be used on `ImageOracle` inside the guest. A simmilar
+in the `image` crate, and by [others], can be used on `ImageOracle` inside the guest. A similar
 approach could be used to produce a provable blur, image down-scaling, and more.
 
 [others]: https://docs.rs/imageproc/latest/imageproc/

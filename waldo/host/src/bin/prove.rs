@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut mask_source = ImageReader::open(&path)?.decode()?;
         if mask_source.dimensions() != crop_dimensions {
             return Err(format!(
-                "mask dimensions do not match specified height and width for Waldo: {:?} != {:?}",
+                "Mask dimensions do not match specified height and width for Waldo: {:?} != {:?}",
                 mask_source.dimensions(),
                 crop_dimensions
             )
@@ -111,7 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Run prover and generate receipt
     println!(
-        "Running the prover to cut out waldo at {:?} with dimensions {:?}",
+        "Running the prover to cut out Waldo at {:?} with dimensions {:?}",
         input.crop_location, input.crop_dimensions,
     );
     let receipt = prover.run()?;

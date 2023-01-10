@@ -31,7 +31,7 @@ impl Into<RgbImage> for ImageChunk {
     }
 }
 
-/// ImageMerkleTree is a merklization of an image, constructed with the leaf elements being NxN
+/// ImageMerkleTree is a merklization of an image, constructed with leaf elements of NxN
 /// square chunks, traversed in left-to-right and top-to-bottom order.
 ///
 /// Chunks on the right and bottom boundaries will be incomplete if the width or height cannot be

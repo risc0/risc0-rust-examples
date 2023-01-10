@@ -19,7 +19,7 @@ pub struct PrivateInput {
     /// X and y location for the top left corner of the crop.
     pub crop_location: (u32, u32),
 
-    /// X and y location for the top left corner of the crop.
+    /// Width and height of the cropped image.
     pub crop_dimensions: (u32, u32),
 
     /// Optional mask to apply to the image to filter out additional pixels from the crop area.

@@ -53,7 +53,7 @@ pub fn main() {
     )
     .to_image();
 
-    // If provided, apply the provided mask to reveal less about the image.
+    // If a mask is provided, apply it to reveal less about the image.
     let subimage_masked = match input.mask {
         Some(mask_raw) => {
             let mask =

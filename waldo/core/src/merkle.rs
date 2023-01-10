@@ -58,7 +58,7 @@ where
             // Callback function must only be registered as a callback for the VECTOR_ORACLE_CHANNEL.
             assert_eq!(channel_id, VECTOR_ORACLE_CHANNEL);
             // TODO: Using bincode here, but it would likely be better on the guest side to use the
-            // risc0 zeroio or serde creates. I should try to use one of those (again).
+            // risc0 zeroio or serde crates. I should try to use one of those (again).
             let index: usize = bincode::deserialize::<u32>(data)
                 .unwrap()
                 .try_into()
@@ -85,8 +85,8 @@ where
     }
 }
 
-/// Wrapper for the `merkle_light` inclusion proof. Includes and improved API for verifying that a
-/// proof references and expected element and position and supports serialization.
+/// Wrapper for the `merkle_light` inclusion proof. Includes an improved API for verifying that a
+/// proof supports serialization and references an expected element and position.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(from = "(Vec<Node>, Vec<bool>)", into = "(Vec<Node>, Vec<bool>)")]
 pub struct Proof<Element>
@@ -114,7 +114,7 @@ where
     /// Verify that the proof commits to the element in _some_ Merkle tree and return the
     /// calculated Merkle root.
     pub fn verified_root(&self, element: &Element) -> Option<Node> {
-        // Check that the path from the leaf to the root it consistent.
+        // Check that the path from the leaf to the root is consistent.
         if !self.inner.validate::<ShaHasher>() {
             return None;
         }
@@ -124,7 +124,7 @@ where
         element.hash(algorithm);
         let elem_hash = algorithm.hash();
 
-        // Hash the hash of the element to get the leaf, and check that it matches.
+        // Hash the element to get the leaf, and check that it matches.
         algorithm.reset();
         if algorithm.leaf(elem_hash) != self.inner.item() {
             return None;
@@ -133,7 +133,7 @@ where
         Some(self.root())
     }
 
-    /// Compute the vector index in of the proven element.
+    /// Compute the vector index of the proven element.
     pub fn index(&self) -> usize {
         self.inner
             .path()
@@ -187,7 +187,7 @@ where
     }
 }
 
-// From tuple representation provided to enable serde deserialization.
+// Into tuple representation provided to enable serde deserialization.
 impl<Element> Into<(Vec<Node>, Vec<bool>)> for Proof<Element>
 where
     Element: Hashable<ShaHasher>,
@@ -242,8 +242,8 @@ pub struct ShaHasher {
 // NOTE: The Hasher trait is really designed for use with hashmaps and is quite ill-suited as an
 // interface for use by merkle_light. This is one of the design weaknesses of this package.
 impl Hasher for ShaHasher {
-    // NOTE: RISC0 Sha trait currently only provides clean ways to hash data in one shot. As a
-    // result, we append the data to an array here and only compress at the end.
+    // NOTE: RISC0 Sha trait currently only provides clean ways to hash data in one shot. To
+    // accommodate this, we append the data to an array here and only compress at the end.
     fn write(&mut self, bytes: &[u8]) {
         self.data.extend_from_slice(bytes);
     }
@@ -262,7 +262,7 @@ impl Algorithm<Node> for ShaHasher {
 /// VectorOracle is used inside the zkVM guest to access elements of a vector which are held by the
 /// host in a committed Merkle tree. On each access, the guest will verify a Merkle proof against
 /// the root given when the VectorOracle is created to ensure all accessed values are consistent
-/// a vector with that root.
+/// with a vector with that root.
 #[cfg(target_os = "zkvm")]
 pub struct VectorOracle<Element>
 where
@@ -285,14 +285,14 @@ where
     }
 
     // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
-    // there is a valid, known, element at every index. Any out of bounds access or access to an
+    // there is a valid, known element at every index. Any out of bounds access or access to an
     // index for which there is no element will not return since no valid proof can be generated.
     // NOTE: This implementation deserializes proof and element values, which copies them from the
     // address returned by send_recv onto the heap. This is fairly inefficient and could be
     // improved on with an implementation of Merkle proofs that can be verified without
     // deserialization, and by returning references to the underlying element, which points to the
     // memory initialized by send_recv. Additionally note that this implementation uses bincode
-    // instead of any serializer that it more native to, and efficient in, the guest.
+    // instead of any serializer that is more native to (and efficient in) the guest.
     pub fn get(&self, index: usize) -> Element {
         let (value, proof): (Element, Proof<Element>) =
             bincode::deserialize(guest::env::send_recv(

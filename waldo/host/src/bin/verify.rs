@@ -15,11 +15,11 @@ use waldo_methods::IMAGE_CROP_ID;
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Input file path to the full Where's Waldo image.
-    /// Used to verify that the Waldo in the recipt actually came from this image.
+    /// Used to verify that the Waldo in the receipt actually came from this image.
     #[clap(short, long, value_parser, value_hint = clap::ValueHint::FilePath)]
     image: PathBuf,
 
-    /// Input file path to fetch the recipt. Note that the receipt contains the cutout of waldo.
+    /// Input file path to fetch the receipt. Note that the receipt contains the cutout of waldo.
     #[clap(short = 'r', long, value_parser, default_value = "./receipt.bin", value_hint = clap::ValueHint::FilePath)]
     receipt: PathBuf,
 
@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         journal.subimage_dimensions.1,
         journal.subimage,
     )
-    .ok_or("failed to load the returned subimage bytes into an image")?;
+    .ok_or("Failed to load the returned subimage bytes into an image")?;
 
     // Save the image to disk for the verifier to inspect.
     subimage.save(&args.waldo)?;

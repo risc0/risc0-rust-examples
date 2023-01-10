@@ -19,11 +19,6 @@ struct Args {
     #[clap(short = 'i', long, value_parser, value_hint = clap::ValueHint::FilePath)]
     image: PathBuf,
 
-    /// Optional input file path to an image mask to apply to Waldo.
-    /// Must be the same dimensions, in pixels, as the cut out x and y.
-    #[clap(short = 'm', long, value_parser, value_hint = clap::ValueHint::FilePath)]
-    mask: Option<PathBuf>,
-
     /// X coordinate, in pixels from the top-left corner, of Waldo.
     #[clap(short = 'x', long, value_parser)]
     waldo_x: u32,
@@ -39,6 +34,13 @@ struct Args {
     /// Height, in pixels, of the cutout for Waldo.
     #[clap(short = 'h', long, value_parser)]
     waldo_height: u32,
+
+    /// Optional input file path to an image mask to apply to Waldo.
+    /// Grayscale pixel values will be subtracted from the cropped image of Waldo such that a black
+    /// pixel in the mask will result in the cooresponding image pixel being blacked out.
+    /// Must be the same dimensions, in pixels, as the cut out x and y.
+    #[clap(short = 'm', long, value_parser, value_hint = clap::ValueHint::FilePath)]
+    mask: Option<PathBuf>,
 
     /// Output file path to save the receipt. Note that the receipt contains the cutout of waldo.
     #[clap(short = 'r', long, value_parser, default_value = "./receipt.bin", value_hint = clap::ValueHint::FilePath)]
@@ -57,7 +59,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         img.height()
     );
 
-    // Send the merkle proof to the guest.
     let crop_location = (args.waldo_x, args.waldo_y);
     let crop_dimensions = (args.waldo_width, args.waldo_height);
 
@@ -82,21 +83,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(Some(mask.into_raw()))
     })?;
 
-    // Construct a Merkle tree from the Where's Waldo image.
+    // Construct a Merkle tree from the full Where's Waldo image.
     let img_merkle_tree = ImageMerkleTree::<{ IMAGE_CHUNK_SIZE }>::new(&img);
-
     println!(
         "Created Merkle tree from image with root {:?}",
         img_merkle_tree.root(),
     );
-
-    let input = PrivateInput {
-        root: img_merkle_tree.root(),
-        image_dimensions: img.dimensions(),
-        mask,
-        crop_location,
-        crop_dimensions,
-    };
 
     // Make the prover, loading the image crop method binary and method ID, and registering a
     // send_recv callback to communicate vector oracle data from the Merkle tree.
@@ -106,14 +98,22 @@ fn main() -> Result<(), Box<dyn Error>> {
         img_merkle_tree.vector_oracle_callback(),
     );
     let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
+
+    // Give the private input to the guest, including Waldo's location.
+    let input = PrivateInput {
+        root: img_merkle_tree.root(),
+        image_dimensions: img.dimensions(),
+        mask,
+        crop_location,
+        crop_dimensions,
+    };
     prover.add_input_u32_slice(&serde::to_vec(&input)?);
 
+    // Run prover and generate receipt
     println!(
         "Running the prover to cut out waldo at {:?} with dimensions {:?}",
         input.crop_location, input.crop_dimensions,
     );
-
-    // Run prover and generate receipt
     let receipt = prover.run()?;
 
     // Save the receipt to disk so it can be sent to the verifier.

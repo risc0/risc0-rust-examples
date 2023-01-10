@@ -24,12 +24,11 @@ struct Args {
     receipt: PathBuf,
 
     /// Output file path to save the cutout image of Waldo extracted from the receipt.
-    /// SAFETY: Make sure to visually inspect the Waldo cutout and verify it really is Waldo and
-    /// not some barber pole!
+    /// SAFETY: Make sure to visually inspect the cutout and verify it really is Waldo and not some barber pole!
     #[clap(short = 'o', long, value_parser, default_value = "./waldo_cutout.png", value_hint = clap::ValueHint::FilePath)]
     waldo: PathBuf,
 
-    /// Flag to display displaying the Waldo cutout in the terminal.
+    /// Flag to disable displaying the Waldo cutout in the terminal.
     #[clap(long)]
     no_display: bool,
 }
@@ -37,7 +36,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    // Read the image from disk.
+    // Read the full Where's Waldo image from disk.
     let img = ImageReader::open(&args.image)?.decode()?;
     println!(
         "Read image at {} with size: {} x {}",
@@ -48,18 +47,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Construct a Merkle tree from the Where's Waldo image.
     let img_merkle_tree = ImageMerkleTree::<{ IMAGE_CHUNK_SIZE }>::new(&img);
-
     println!(
         "Created Merkle tree from image with root {:?}",
         img_merkle_tree.root(),
     );
 
-    // Load and verify the receipt file to get the journal.
+    // Load and verify the receipt file.
     let receipt: Receipt = bincode::deserialize(&fs::read(&args.receipt)?)?;
     receipt.verify(IMAGE_CROP_ID)?;
-    let journal: Journal = serde::from_slice(&receipt.journal)?;
 
     // Check consistency of the journal against the input Where's Waldo image.
+    let journal: Journal = serde::from_slice(&receipt.journal)?;
     if &journal.root != &img_merkle_tree.root() {
         return Err(format!(
             "Image root in journal does not match the expected image: {:?} != {:?}",

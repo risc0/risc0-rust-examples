@@ -8,6 +8,8 @@ use waldo_core::{Journal, PrivateInput};
 
 risc0_zkvm::guest::entry!(main);
 
+/// Apply the mask to the given image, subtracting the grayscale brightness value in the mask from
+/// the RGB color values in the image.
 fn apply_image_mask(mut image: RgbImage, mask: &GrayImage) -> RgbImage {
     assert_eq!(image.dimensions(), mask.dimensions());
 

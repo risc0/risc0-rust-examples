@@ -16,6 +16,10 @@ use serde::{Deserialize, Serialize};
 pub const VECTOR_ORACLE_CHANNEL: u32 = 0x09ac1e00;
 
 /// Merkle tree for use as a vector commitment over elements of the specified type.
+///
+/// MerkleTree is a wrapper around the `merkle_light::merkle::MerkleTree`, created to integrate
+/// with the RISC0 SHA256 coprocessor, functionality to act as a vector oracle for the for the
+/// guest, and some convinience functions.
 pub struct MerkleTree<Element>
 where
     Element: Hashable<ShaHasher>,
@@ -69,7 +73,7 @@ where
     }
 }
 
-// Implement Deref to the merkle_light tree so that all the methods on that type accessible.
+// Implement Deref so that all the methods on the wrapped type are accessible.
 impl<Element> Deref for MerkleTree<Element>
 where
     Element: Hashable<ShaHasher>,
@@ -81,8 +85,8 @@ where
     }
 }
 
-/// Wrapper for the merkle_light inclusion proof. Includes and improved API for verifying that a
-/// proof references and expected element and position. Supports serialization.
+/// Wrapper for the `merkle_light` inclusion proof. Includes and improved API for verifying that a
+/// proof references and expected element and position and supports serialization.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(from = "(Vec<Node>, Vec<bool>)", into = "(Vec<Node>, Vec<bool>)")]
 pub struct Proof<Element>
@@ -97,6 +101,8 @@ impl<Element> Proof<Element>
 where
     Element: Hashable<ShaHasher>,
 {
+    /// Verify that the proof commits to the inclusion of the given element in a Merkle tree with
+    /// the given root.
     pub fn verify(&self, root: &Node, element: &Element) -> bool {
         // Check that the root of the proof matches the provided root.
         match &self.verified_root(element) {
@@ -105,6 +111,8 @@ where
         }
     }
 
+    /// Verify that the proof commits to the element in _some_ Merkle tree and return the
+    /// calculated Merkle root.
     pub fn verified_root(&self, element: &Element) -> Option<Node> {
         // Check that the path from the leaf to the root it consistent.
         if !self.inner.validate::<ShaHasher>() {
@@ -125,7 +133,7 @@ where
         Some(self.root())
     }
 
-    // Index computes, from the path, the index of the proven element in the vector.
+    /// Compute the vector index in of the proven element.
     pub fn index(&self) -> usize {
         self.inner
             .path()
@@ -234,8 +242,8 @@ pub struct ShaHasher {
 // NOTE: The Hasher trait is really designed for use with hashmaps and is quite ill-suited as an
 // interface for use by merkle_light. This is one of the design weaknesses of this package.
 impl Hasher for ShaHasher {
-    // NOTE: RISC0 Sha trait only provides clean ways to hash data in one shot. As a result, we
-    // append the data to an array here.
+    // NOTE: RISC0 Sha trait currently only provides clean ways to hash data in one shot. As a
+    // result, we append the data to an array here and only compress at the end.
     fn write(&mut self, bytes: &[u8]) {
         self.data.extend_from_slice(bytes);
     }
@@ -251,6 +259,10 @@ impl Algorithm<Node> for ShaHasher {
     }
 }
 
+/// VectorOracle is used inside the zkVM guest to access elements of a vector which are held by the
+/// host in a committed Merkle tree. On each access, the guest will verify a Merkle proof against
+/// the root given when the VectorOracle is created to ensure all accessed values are consistent
+/// a vector with that root.
 #[cfg(target_os = "zkvm")]
 pub struct VectorOracle<Element>
 where
@@ -260,8 +272,6 @@ where
     phantom_elem: PhantomData<Element>,
 }
 
-// TODO: Provide a version of this primative that is designed to provide oracle access to bytes as
-// &'static [u8] references instead of serializing and deserializing vectors.
 #[cfg(target_os = "zkvm")]
 impl<Element> VectorOracle<Element>
 where
@@ -277,21 +287,20 @@ where
     // NOTE: VectorOracle does not attempt to verify the length of the committed vector, or that
     // there is a valid, known, element at every index. Any out of bounds access or access to an
     // index for which there is no element will not return since no valid proof can be generated.
-    // NOTE: It would be better to use the tailored risc0_zeroio crate for this instead of serde.
+    // NOTE: This implementation deserializes proof and element values, which copies them from the
+    // address returned by send_recv onto the heap. This is fairly inefficient and could be
+    // improved on with an implementation of Merkle proofs that can be verified without
+    // deserialization, and by returning references to the underlying element, which points to the
+    // memory initialized by send_recv. Additionally note that this implementation uses bincode
+    // instead of any serializer that it more native to, and efficient in, the guest.
     pub fn get(&self, index: usize) -> Element {
-        let (value, proof): (Element, Proof<Element>) = bincode::deserialize(
-            // Fetch the value and proof from the host by index.
-            // NOTE: It would be nice if there was a wrapper for send_recv that looked more like
-            // env::read(). A smaller step would be to have this method as take [u32] instead of [u8]
-            // to avoid mucking around with the bytes.
-            // TODO: Consider using bincode or another byte serializer instead of the u32 RISC0 format.
-            guest::env::send_recv(
+        let (value, proof): (Element, Proof<Element>) =
+            bincode::deserialize(guest::env::send_recv(
                 VECTOR_ORACLE_CHANNEL,
-                // Cast to u32 before serializing since usize is an architecture dependent type.
+                // Cast the index to u32 since usize is an architecture dependent type.
                 &bincode::serialize(&(u32::try_from(index).unwrap())).unwrap(),
-            ),
-        )
-        .unwrap();
+            ))
+            .unwrap();
 
         // Verify the proof for the value of the element at the given index in the committed vector.
         assert_eq!(index, proof.index());
@@ -310,10 +319,6 @@ mod test {
     use sha2::Digest as Sha2Digest;
 
     use super::*;
-
-    // NOTE: There are no tests for the VectorOracle functionalities. This is because it's somewhat
-    // non-trivial to test this functionality. TODO is to implement these tests and consider how it
-    // could be made easy for other developers.
 
     /// Build and return a random Merkle tree with 1028 u32 elements.
     fn random_merkle_tree() -> MerkleTree<u32> {

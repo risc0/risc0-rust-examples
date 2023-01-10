@@ -1,34 +1,53 @@
-use std::ops::Deref;
+use image::{DynamicImage, RgbImage};
+use serde::{Deserialize, Serialize};
 
-use image::DynamicImage;
-
-use crate::merkle::MerkleTree;
+use crate::merkle::{MerkleTree, Node};
 
 /// Recommended default chunk size to use in the ImageMerkleTree and ImageOracle.
 pub const IMAGE_CHUNK_SIZE: u32 = 8;
 
+// Chunk struct used internally to wrap the raw bytes and include a width value. Important for
+// chunks at the edge of the image which may have a width or height of less than N.
+#[derive(Debug, Clone, Serialize, Deserialize, Hashable)]
+struct ImageChunk {
+    data: Vec<u8>,
+    width: u32,
+    height: u32,
+}
+
+impl From<RgbImage> for ImageChunk {
+    fn from(image: RgbImage) -> Self {
+        Self {
+            width: image.width(),
+            height: image.height(),
+            data: image.into_raw(),
+        }
+    }
+}
+
+impl Into<RgbImage> for ImageChunk {
+    fn into(self: Self) -> RgbImage {
+        RgbImage::from_raw(self.width, self.height, self.data).unwrap()
+    }
+}
+
 /// ImageMerkleTree is a merklization of an image, constructed with the leaf elements being NxN
-/// square chunks.
+/// square chunks, traversed in left-to-right and top-to-bottom order.
 ///
-/// Chunks on the right and bottom boundaries will be incomplete if the width or
-/// height cannot be divided by N.
-pub struct ImageMerkleTree<const N: u32>(MerkleTree<Vec<u8>>);
+/// Chunks on the right and bottom boundaries will be incomplete if the width or height cannot be
+/// divided by N. At the right edge, the width of the chunks will be truncated and on the bottom
+/// edge the height will be truncated.
+pub struct ImageMerkleTree<const N: u32>(MerkleTree<ImageChunk>);
 
 impl<const N: u32> ImageMerkleTree<N> {
     pub fn new(image: &DynamicImage) -> Self {
-        // Iterate over the NxN chunks of an image in right to left, top to bottom, order.
-        // Convert the image into RGB8 as it is chunked. Access to the image will be to the
-        // underlying subpixels (i.e. bytes for RGB8).
-        // NOTE: With support for batched Merkle proof generation and verification, it is likely
-        // that this construction could be made more efficient by linearizing the chunks such that
-        // chunks that are close in the image are close in the vector.
-        let chunks: Vec<Vec<u8>> = {
+        let chunks: Vec<ImageChunk> = {
             (0..image.height())
                 .step_by(usize::try_from(N).unwrap())
                 .map(|y| {
                     (0..image.width())
                         .step_by(usize::try_from(N).unwrap())
-                        .map(move |x| image.crop_imm(x, y, N, N).into_rgb8().into_raw())
+                        .map(move |x| image.crop_imm(x, y, N, N).into_rgb8().into())
                 })
                 .flatten()
                 .collect()
@@ -36,13 +55,14 @@ impl<const N: u32> ImageMerkleTree<N> {
 
         Self(MerkleTree::new(chunks))
     }
-}
 
-impl<const N: u32> Deref for ImageMerkleTree<N> {
-    type Target = MerkleTree<Vec<u8>>;
+    pub fn root(&self) -> Node {
+        self.0.root()
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    #[cfg(not(target_os = "zkvm"))]
+    pub fn vector_oracle_callback<'a>(&'a self) -> impl Fn(u32, &[u8]) -> Vec<u8> + 'a {
+        self.0.vector_oracle_callback()
     }
 }
 
@@ -51,12 +71,13 @@ impl<const N: u32> Deref for ImageMerkleTree<N> {
 mod zkvm {
     use divrem::{DivCeil, DivRem};
     use elsa::FrozenBTreeMap;
-    use image::{GenericImageView, Rgb};
+    use image::{GenericImageView, Rgb, RgbImage};
 
+    use super::ImageChunk;
     use crate::merkle::{Node, VectorOracle};
 
     pub struct ImageOracle<const N: u32> {
-        chunks: VectorOracle<Vec<u8>>,
+        chunks: VectorOracle<ImageChunk>,
 
         // Width and height of the image in pixels.
         width: u32,
@@ -64,13 +85,13 @@ mod zkvm {
 
         // Fields used internally for precomputation and caching.
         width_chunks: u32,
-        cache: FrozenBTreeMap<(u32, u32), Vec<u8>>,
+        cache: FrozenBTreeMap<(u32, u32), Box<RgbImage>>,
     }
 
     impl<const N: u32> ImageOracle<N> {
         pub fn new(root: Node, width: u32, height: u32) -> Self {
             Self {
-                chunks: VectorOracle::<Vec<u8>>::new(root),
+                chunks: VectorOracle::new(root),
                 width,
                 height,
                 width_chunks: DivCeil::div_ceil(width, N),
@@ -79,7 +100,7 @@ mod zkvm {
         }
 
         /// Memoized method for getting chunks of the image. Inputs x and y are chunk coordinates.
-        pub fn get_chunk(&self, x: u32, y: u32) -> &[u8] {
+        fn get_chunk(&self, x: u32, y: u32) -> &RgbImage {
             // Check that the given x  if within the bounds of the width. No need to check y since
             // if y is out of bounds the VectorOrcacle query will be out of bounds.
             match self.cache.get(&(x, y)) {
@@ -90,7 +111,8 @@ mod zkvm {
                     let chunk = self
                         .chunks
                         .get(usize::try_from(y * self.width_chunks + x).unwrap());
-                    self.cache.insert((x, y), chunk);
+                    self.cache
+                        .insert((x, y), RgbImage::from(chunk.into()).into());
                     self.cache.get(&(x, y)).unwrap()
                 }
             }
@@ -121,13 +143,7 @@ mod zkvm {
             let (y_chunk, y_offset) = DivRem::div_rem(y, N);
 
             let chunk = &self.get_chunk(x_chunk, y_chunk);
-
-            // FIXME: Does not handle access at the edge of the image.
-            <[u8; 3]>::try_from(
-                &chunk[usize::try_from(y_offset * N + x_offset).unwrap() * 3..][..3],
-            )
-            .unwrap()
-            .into()
+            *chunk.get_pixel(x_offset, y_offset)
         }
     }
 }

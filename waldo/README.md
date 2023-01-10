@@ -38,7 +38,7 @@ for using the SHA256 guest circuit, and providing a `VectorOracle` abstraction. 
 `waldo_core::image` module is implemented a specific MerkleTree type for images, and an
 `ImageOracle` type which can be used in the guest for image operations.
 
-Simmilar Merkle tree abtractions can be used to, for example, ensure a secret word is part of a
+Similar Merkle tree abstractions can be used to, for example, ensure a secret word is part of a
 dictionary, a payment destination is not in a list of banned addresses, or that a user is in the
 set of authorized users.
 

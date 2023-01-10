@@ -10,26 +10,27 @@ secret.
 
 But these days, why not implement a real zero-knowledge proof to show you know where Waldo is?
 
-This example implements a RISC0 zero-knowledge proof which allows a prover to convince a verifier
-they know where Waldo is in a public Where's Waldo puzzle, without revealing Waldo's coordinates.
+This example implements a RISC0 zero-knowledge program which allows a prover to convince a verifier
+they know Waldo's location in a public Where's Waldo puzzle, without revealing Waldo's coordinates.
 
 ## Approach
 
-The approach for this example is similar to the analogy. It take the full image and "cuts out" just
+The approach for this example is similar to the analogy. It takes the full image and "cuts out" just
 Waldo. This cutting out operation takes place in the zkvm guest such that a commitment to the source
 image and the cut out image of Waldo can be revealed, without giving the verifier the coordinates.
-Key to this is ensuring that the cutout came from the expected source image.
+Key to this proof is ensuring that the cutout came from the expected source image, and not some
+unrelated picture that includes Waldo.
 
 ### Merkleization
 
 In the simplest approach, the guest program would simply hash the whole Where's Waldo image in
-memory, then perform the crop and mask operations to cut out Waldo on the image that was just
-hashed, committing to the image hash and the output. Unfortunately, hashing the whole image, which
-we expect to be rather large, if cost prohibitive in the guest.
+memory, then perform the crop and mask operations to cut out Waldo on that image. It would
+commit the image hash and the cut out image to the journal. Unfortunately, hashing the whole
+image, which we expect to be rather large, is cost prohibitive in the guest.
 
 Because we only need access to a relatively small portion of the image to produce the cutout, a
 viable approach is to split the image into a vector of small image chunks and use a Merkle tree to
-commit to this vector. The zkvm guest can then ask the host for image chunks, and along with the
+commit to this vector. The zkVM guest can then ask the host for image chunks, and along with the
 chunk the host can provide a Merkle path that proves the chunk is part of the committed image.
 
 In the `waldo_core::merkle` module is implemented a wrapper on the `merkle_light` crate with support
@@ -37,13 +38,28 @@ for using the SHA256 guest circuit, and providing a `VectorOracle` abstraction. 
 `waldo_core::image` module is implemented a specific MerkleTree type for images, and an
 `ImageOracle` type which can be used in the guest for image operations.
 
+Simmilar Merkle tree abtractions can be used to, for example, ensure a secret word is part of a
+dictionary, a payment destination is not in a list of banned addresses, or that a user is in the
+set of authorized users.
+
+### zkVM Communication Channels
+
+In the RISC0 zkVM system, the guest and host can communicate over using channels at runtime.
+These channels are currently used to implement the `env::read` and `env::commit` functions in the guest,
+and the developer can create new channels for their own needs. In this example, a channel is used to
+allow the guest to request chunks of the Where's Waldo image on-demand as a part of the `MerkleTree`
+and `VectorOracle` types. Using these channels allows us to write more flexible code that is more
+readble and follows familiar paradigms.
+
 ### Image Manipulation
 
 In order to manipulate the image and cut out waldo, in particular cropping and applying a mask, this
 example utilizes the popular `image` crate. This is enabled by implementing
 `image::GenericImageView` on `ImageOracle`. With that trait, many of the image operations provided
-in the `image` crate, and by others, can be used on `ImageOracle` inside the guest. A simmilar
+in the `image` crate, and by [others], can be used on `ImageOracle` inside the guest. A simmilar
 approach could be used to produce a provable blur, image down-scaling, and more.
+
+[others]: https://docs.rs/imageproc/latest/imageproc/
 
 ## Run this example
 

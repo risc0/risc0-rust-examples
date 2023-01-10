@@ -1,12 +1,11 @@
 #![no_main]
 
-use risc0_zkvm::guest::env;
-use risc0_zkvm::sha::{sha, Sha};
+use risc0_zkvm_guest::{env, sha};
 
-risc0_zkvm::guest::entry!(main);
+risc0_zkvm_guest::entry!(main);
 
 pub fn main() {
     let data: String = env::read();
-    let digest = sha().hash_bytes(&data.as_bytes());
-    env::commit(&*digest);
+    let sha = sha::digest_u8_slice(&data.as_bytes());
+    env::commit(&sha);
 }

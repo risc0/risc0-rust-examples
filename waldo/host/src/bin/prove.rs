@@ -4,10 +4,10 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use image::io::Reader as ImageReader;
-use image::{imageops, GenericImageView};
+use image::GenericImageView;
 use risc0_zkvm::prove::{Prover, ProverOpts};
 use risc0_zkvm::serde;
-use waldo_core::image::{ImageMerkleTree, IMAGE_CHUNK_SIZE};
+use waldo_core::image::{ImageMask, ImageMerkleTree, IMAGE_CHUNK_SIZE};
 use waldo_core::merkle::VECTOR_ORACLE_CHANNEL;
 use waldo_core::PrivateInput;
 use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
@@ -65,21 +65,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Read the image mask from disk, if provided.
     let mask = args.mask.map_or(Ok::<_, Box<dyn Error>>(None), |path| {
         // Read the image mask from disk. Reads any format and color image.
-        let mut mask_source = ImageReader::open(&path)?.decode()?;
-        if mask_source.dimensions() != crop_dimensions {
+        let mask: ImageMask = ImageReader::open(&path)?.decode()?.into();
+        if mask.dimensions() != crop_dimensions {
             return Err(format!(
                 "Mask dimensions do not match specified height and width for Waldo: {:?} != {:?}",
-                mask_source.dimensions(),
+                mask.dimensions(),
                 crop_dimensions
             )
             .into());
         }
         println!("Read image mask at {}", &path.display(),);
 
-        // Create the mask by inverting the colors, then converting to grayscale, so dark pixels
-        // will mask out pixels in the base image.
-        imageops::colorops::invert(&mut mask_source);
-        let mask = mask_source.into_luma8();
         Ok(Some(mask.into_raw()))
     })?;
 

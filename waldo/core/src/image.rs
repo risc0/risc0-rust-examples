@@ -1,4 +1,4 @@
-use image::{DynamicImage, RgbImage};
+use image::{DynamicImage, GrayImage, Rgb, RgbImage};
 use serde::{Deserialize, Serialize};
 
 use crate::merkle::{MerkleTree, Node};
@@ -28,6 +28,55 @@ impl From<RgbImage> for ImageChunk {
 impl Into<RgbImage> for ImageChunk {
     fn into(self: Self) -> RgbImage {
         RgbImage::from_raw(self.width, self.height, self.data).unwrap()
+    }
+}
+
+/// Mask image that can be applied to an image to include or exclude pixels.
+/// Pixel values are treated as booleans controlling whether or not the corresponding pixel from
+/// the base image is included. A pixel value of 0 results in the corresponding pixel being masked
+/// out.
+pub struct ImageMask(pub GrayImage);
+
+impl ImageMask {
+    /// Apply the mask to the given image, masking out any pixels in image where the mask contains
+    /// a 0 value. Any mask pixel value of greater than zero passes the base pixel through.
+    pub fn apply(&self, mut image: RgbImage) -> RgbImage {
+        assert_eq!(image.dimensions(), self.0.dimensions());
+
+        let zero_pixel: Rgb<u8> = [0, 0, 0].into();
+        for x in 0..image.width() {
+            for y in 0..image.height() {
+                let m = self.0.get_pixel(x, y);
+                if m.0[0] == 0 {
+                    image.put_pixel(x, y, zero_pixel);
+                }
+            }
+        }
+        image
+    }
+
+    pub fn into_raw(self) -> Vec<u8> {
+        self.0.into_raw()
+    }
+
+    pub fn dimensions(&self) -> (u32, u32) {
+        self.0.dimensions()
+    }
+
+    pub fn from_raw(width: u32, height: u32, data: Vec<u8>) -> Option<Self> {
+        GrayImage::from_raw(width, height, data).map(|img| img.into())
+    }
+}
+
+impl From<DynamicImage> for ImageMask {
+    fn from(image: DynamicImage) -> Self {
+        Self(image.into_luma8())
+    }
+}
+
+impl From<GrayImage> for ImageMask {
+    fn from(image: GrayImage) -> Self {
+        Self(image)
     }
 }
 

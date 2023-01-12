@@ -1,0 +1,21 @@
+[package]
+name = "chibicc"
+version = "0.0.1"
+edition = "2021"
+description = "Chibicc adapted for R0"
+license = "MIT"
+homepage = "https://github.com/rui314/chibicc"
+repository = "https://github.com/rui314/chibicc"
+links = "chibicc"
+
+[workspace]
+
+[build-dependencies]
+cc = { version = "1.0" }
+glob = "0.3"
+# Use modified version of Sov labs branch of c compiler wrapper
+risc0-zkvm = { git="https://github.com/risc0/risc0", branch = "mwh/chibicc-ccb", default-features = false, features = ["std", "risc_cc"]}
+#compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins" }
+
+[profile.release]
+debug = true

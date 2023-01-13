@@ -16,7 +16,6 @@
 #![no_std]
 
 use risc0_zkvm_guest::{env, sha};
-
 use voting_machine_core::{FreezeVotingMachineCommit, FreezeVotingMachineParams};
 
 risc0_zkvm_guest::entry!(main);

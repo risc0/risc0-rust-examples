@@ -10,7 +10,7 @@ image = "0.24.5"
 risc0-zkp = "1.0.0-rc.2"
 # TODO: Determine what where the issue is when using metal and reenable that feature here.
 # risc0-zkvm = { version = "1.0.0-rc.2", default-features = false, features = ["std", "prove", "metal"] }
-risc0-zkvm = { version = "1.0.0-rc.2", default-features = false, features = ["std", "prove", "metal"] }
+risc0-zkvm = { version = "1.0.0-rc.2", default-features = false, features = ["std", "prove"] }
 serde = "1.0"
 viuer = "0.6"
 waldo-core = { path = "../core" }

@@ -1,5 +1,5 @@
 use methods::{MULTIPLY_ID, MULTIPLY_PATH};
-use risc0_zkvm::host::Prover;
+use risc0_zkvm::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
 
 fn main() {
@@ -16,17 +16,15 @@ fn main() {
     );
 
     // Next we send a & b to the guest
-    prover.add_input(to_vec(&a).unwrap().as_slice()).unwrap();
-    prover.add_input(to_vec(&b).unwrap().as_slice()).unwrap();
+    prover.add_input_u32_slice(to_vec(&a).unwrap().as_slice());
+    prover.add_input_u32_slice(to_vec(&b).unwrap().as_slice());
     // Run prover & generate receipt
     let receipt = prover.run()
         .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");
 
     // Extract journal of receipt (i.e. output c, where c = a * b)
     let c: u64 = from_slice(
-        &receipt
-            .get_journal_vec()
-            .expect("Journal should be available for valid receipts"),
+        &receipt.journal
     )
     .expect("Journal output should deserialize into the same types (& order) that it was written");
 

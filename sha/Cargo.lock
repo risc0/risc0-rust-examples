@@ -1265,7 +1265,7 @@ dependencies = [
 [[package]]
 name = "risc0-build"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "cargo_metadata",
  "downloader",
@@ -1284,7 +1284,7 @@ dependencies = [
 [[package]]
 name = "risc0-circuit-rv32im"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "anyhow",
  "cc",
@@ -1302,7 +1302,7 @@ dependencies = [
 [[package]]
 name = "risc0-zeroio"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "bytemuck",
  "impl-trait-for-tuples",
@@ -1314,7 +1314,7 @@ dependencies = [
 [[package]]
 name = "risc0-zeroio-derive"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1324,7 +1324,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkp"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1344,7 +1344,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1366,7 +1366,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm-platform"
 version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
 
 [[package]]
 name = "rustix"

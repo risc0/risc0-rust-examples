@@ -944,6 +944,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1264,8 +1275,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-build"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "cargo_metadata",
  "downloader",
@@ -1283,8 +1294,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-circuit-rv32im"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "anyhow",
  "cc",
@@ -1301,8 +1312,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zeroio"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "bytemuck",
  "impl-trait-for-tuples",
@@ -1313,8 +1324,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zeroio-derive"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1323,8 +1334,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zkp"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1343,8 +1354,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zkvm"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -1352,6 +1363,8 @@ dependencies = [
  "elf",
  "lazy-regex",
  "log",
+ "num-derive",
+ "num-traits",
  "rand",
  "rayon",
  "risc0-circuit-rv32im",
@@ -1365,8 +1378,8 @@ dependencies = [
 
 [[package]]
 name = "risc0-zkvm-platform"
-version = "1.0.0-rc.2"
-source = "git+https://github.com/risc0/risc0.git?rev=d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7#d02f606ab7d59ad45dc75314eb3e0eef5c9a26b7"
+version = "0.12.0-rc.1"
+source = "git+https://github.com/risc0/risc0.git?rev=65fb3871e3ef468be0a306d9f1adf5631d943b46#65fb3871e3ef468be0a306d9f1adf5631d943b46"
 
 [[package]]
 name = "rustix"

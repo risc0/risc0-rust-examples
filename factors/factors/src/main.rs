@@ -16,8 +16,8 @@ fn main() {
     );
 
     // Next we send a & b to the guest
-    prover.add_input_u32_slice(to_vec(&a).unwrap().as_slice());
-    prover.add_input_u32_slice(to_vec(&b).unwrap().as_slice());
+    prover.add_input_u32_slice(&to_vec(&a).expect("should be serializable"));
+    prover.add_input_u32_slice(&to_vec(&b).expect("should be serializable"));
     // Run prover & generate receipt
     let receipt = prover.run()
         .expect("Valid code should be provable if it doesn't overflow the cycle limit. See `embed_methods_with_options` for information on adjusting maximum cycle count.");

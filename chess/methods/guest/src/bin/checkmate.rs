@@ -2,9 +2,9 @@
 
 use shakmaty::{Chess, Position, fen::Fen, Setup, CastlingMode, FromSetup, Move, san::San};
 use chess_core::Inputs;
-use risc0_zkvm_guest::env;
+use risc0_zkvm::guest::env;
 
-risc0_zkvm_guest::entry!(main);
+risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let inputs: Inputs = env::read();

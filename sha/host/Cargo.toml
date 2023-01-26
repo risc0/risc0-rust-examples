@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-methods = { path = "../methods" }
 clap = "4.0"
+methods = { path = "../methods" }
 risc0-zkp = "0.11"
 risc0-zkvm = "0.11"
 serde = "1.0"

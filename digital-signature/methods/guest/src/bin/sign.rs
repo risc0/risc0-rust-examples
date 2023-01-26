@@ -1,4 +1,4 @@
-// Copyright 2022 Risc0, Inc.
+// Copyright 2023 RISC Zero, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,8 @@
 #![no_main]
 #![no_std]
 
-use risc0_zkvm_guest::{env, sha};
-
 use digital_signature_core::{SignMessageCommit, SigningRequest};
+use risc0_zkvm_guest::{env, sha};
 
 risc0_zkvm_guest::entry!(main);
 

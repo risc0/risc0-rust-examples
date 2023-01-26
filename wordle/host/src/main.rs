@@ -1,7 +1,7 @@
 use std::io;
 
 use methods::{WORDLE_ID, WORDLE_PATH};
-use risc0_zkvm::host::{Prover, Receipt};
+use risc0_zkvm::{Prover, Receipt};
 use risc0_zkvm::serde::to_vec;
 use wordle_core::WORD_LENGTH;
 
@@ -25,7 +25,7 @@ impl Server<'_> {
 
     pub fn get_secret_word_hash(&self) -> Vec<u32> {
         let receipt = self.check_round("_____");
-        let journal = receipt.get_journal_vec().unwrap();
+        let journal = receipt.journal;
         journal[..16].to_owned()
     }
 
@@ -34,11 +34,9 @@ impl Server<'_> {
         let mut prover = Prover::new(&method_code, WORDLE_ID).expect("failed to construct prover");
 
         prover
-            .add_input(to_vec(self.secret_word).unwrap().as_slice())
-            .unwrap();
+            .add_input_u32_slice(to_vec(self.secret_word).unwrap().as_slice());
         prover
-            .add_input(to_vec(&guess_word).unwrap().as_slice())
-            .unwrap();
+            .add_input_u32_slice(to_vec(&guess_word).unwrap().as_slice());
 
         return prover.run().unwrap();
     }
@@ -58,7 +56,7 @@ impl Player {
             .verify(WORDLE_ID)
             .expect("receipt verification failed");
 
-        let journal = receipt.get_journal_vec().unwrap();
+        let journal = receipt.journal;
         let hash = &journal[..16];
 
         if hash != self.hash {

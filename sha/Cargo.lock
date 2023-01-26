@@ -1493,6 +1493,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha-example"
+version = "0.12.0"
+dependencies = [
+ "clap",
+ "methods",
+ "risc0-zkp",
+ "risc0-zkvm",
+ "serde",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1531,17 +1542,6 @@ checksum = "02e2d2db9033d13a1567121ddd7a095ee144db4e1ca1b1bda3419bc0da294ebd"
 dependencies = [
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "starter"
-version = "0.1.0"
-dependencies = [
- "clap",
- "methods",
- "risc0-zkp",
- "risc0-zkvm",
- "serde",
 ]
 
 [[package]]

@@ -11,6 +11,20 @@ on:
 
 jobs:
   check:
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chess
+          - digital-signature
+          - factors
+          - json
+          - password-checker
+          - sha
+          - voting-machine
+          - wordle
+          - waldo
+        os: [Linux, macOS]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,7 +40,9 @@ jobs:
           crate: cargo-sort
           version: "1.0"
       - run: cargo fmt --all -- --check
+        working-directory: ${{ matrix.project }}
       - run: cargo sort --workspace --check
+        working-directory: ${{ matrix.project }}
       - run: npx @kt3k/license-checker
 
   test:
@@ -50,7 +66,5 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo fmt --all -- --check
-        working-directory: ${{ matrix.project }} 
       - run: cargo test --release
         working-directory: ${{ matrix.project }}

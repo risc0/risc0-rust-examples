@@ -92,12 +92,9 @@ impl PollingStation {
         let vec = to_vec(&params).unwrap();
         prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
-        // let slice = prover.get_output();
-        let slice = prover.get_output_u32_vec();
-        log::info!("slice: {:?}", slice); // TODO
-        log::info!("journal: {:?}", &receipt.journal); // TODO
-        // let result = from_slice::<SubmitBallotResult>(&receipt.journal);
-        let result = from_slice::<SubmitBallotResult>(&slice.unwrap());
+        let vec = prover.get_output_u32_vec()?;
+        log::info!("{:?}", vec);
+        let result = from_slice::<SubmitBallotResult>(&vec);
         log::info!("{:?}", result);
         self.state = result.unwrap().state.clone();
         Ok(SubmitBallotMessage { receipt })
@@ -110,8 +107,8 @@ impl PollingStation {
         let vec = to_vec(&params).unwrap();
         prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
-        let slice = prover.get_output_u32_vec();
-        let result = from_slice::<FreezeVotingMachineResult>(&slice.unwrap()).unwrap();
+        let slice = prover.get_output_u32_vec()?;
+        let result = from_slice::<FreezeVotingMachineResult>(&slice).unwrap();
         self.state = result.state.clone();
         Ok(FreezeStationMessage { receipt })
     }

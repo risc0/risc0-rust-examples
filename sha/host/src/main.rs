@@ -51,29 +51,25 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use methods::{HASH_ID, HASH_PATH};
+    use methods::HASH_ID;
     use risc0_zkp::core::sha::Digest;
-    use risc0_zkvm::host::Prover;
-    use risc0_zkvm::serde::{from_slice, to_vec};
+    use risc0_zkvm::serde::from_slice;
+    use sha2::{Digest as _, Sha256};
 
     use crate::provably_hash;
 
+    const TEST_STRING: &str = "abcd";
+
     #[test]
     fn main() {
-        let receipt = provably_hash("abc");
+        let receipt = provably_hash(TEST_STRING);
         receipt.verify(HASH_ID).expect("Proven code should verify");
 
-        let vec = receipt
-            .get_journal_vec()
-            .expect("Journal should be accessible");
-        let digest =
-            from_slice::<Digest>(vec.as_slice()).expect("Journal should contain SHA Digest");
+        let digest = from_slice::<Digest>(receipt.journal.as_slice())
+            .expect("Journal should contain SHA Digest");
         assert_eq!(
-            digest,
-            Digest::new([
-                0xba7816bf, 0x8f01cfea, 0x414140de, 0x5dae2223, 0xb00361a3, 0x96177a9c, 0xb410ff61,
-                0xf20015ad
-            ]),
+            hex::encode(digest.as_bytes()),
+            hex::encode(Sha256::digest(TEST_STRING).as_slice()),
             "We expect to match the reference SHA-256 hash of the standard test value 'abc'"
         );
     }

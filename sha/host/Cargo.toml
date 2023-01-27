@@ -4,8 +4,8 @@ version = "0.12.0"
 edition = "2021"
 
 [dependencies]
-methods = { path = "../methods" }
 clap = "4.0"
+methods = { path = "../methods" }
 risc0-zkp = { git = "https://github.com/risc0/risc0.git", rev = "65fb3871e3ef468be0a306d9f1adf5631d943b46" }
 risc0-zkvm = { git = "https://github.com/risc0/risc0.git", rev = "65fb3871e3ef468be0a306d9f1adf5631d943b46" }
 serde = "1.0"

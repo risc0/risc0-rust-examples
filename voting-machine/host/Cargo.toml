@@ -9,5 +9,5 @@ ctor = "0.1"
 env_logger = "0.9.0"
 log = "0.4.17"
 risc0-zkvm = { git = "https://github.com/risc0/risc0.git", rev = "8a5151f19aa405e1fcac04acda23042367df3a0a" }
-voting-machine-methods = { path = "../methods" }
 voting-machine-core = { path = "../core" }
+voting-machine-methods = { path = "../methods" }

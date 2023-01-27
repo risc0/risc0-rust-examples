@@ -14,8 +14,8 @@
 
 pub use digital_signature_core::{Message, Passphrase, SignMessageCommit, SigningRequest};
 use digital_signature_methods::{SIGN_ID, SIGN_PATH};
-use risc0_zkvm::{Prover, Receipt, Result};
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::{Prover, Receipt, Result};
 use sha2::{Digest, Sha256};
 
 pub struct SignatureWithReceipt {

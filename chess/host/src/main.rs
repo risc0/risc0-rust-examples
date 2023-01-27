@@ -1,8 +1,8 @@
 use chess_core::Inputs;
 use clap::{Arg, Command};
 use methods::{CHECKMATE_ID, CHECKMATE_PATH};
-use risc0_zkvm::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::Prover;
 use shakmaty::fen::Fen;
 use shakmaty::{CastlingMode, Chess, FromSetup, Position, Setup};
 

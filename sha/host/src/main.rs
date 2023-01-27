@@ -1,8 +1,8 @@
 use clap::{Arg, Command};
 use methods::{HASH_ID, HASH_PATH};
 use risc0_zkp::core::sha::Digest;
-use risc0_zkvm::{Prover, Receipt};
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::{Prover, Receipt};
 
 fn provably_hash(input: &str) -> Receipt {
     // Make the prover.
@@ -11,8 +11,7 @@ fn provably_hash(input: &str) -> Receipt {
     let mut prover = Prover::new(&method_code, HASH_ID)
         .expect("Prover should be constructed from matching code and method ID");
 
-    prover
-        .add_input_u32_slice(&to_vec(input).expect("input string should serialize"));
+    prover.add_input_u32_slice(&to_vec(input).expect("input string should serialize"));
 
     // Run prover & generate receipt
     prover.run().expect("Code should be provable")
@@ -30,7 +29,8 @@ fn main() {
     receipt.verify(HASH_ID).expect("Proven code should verify");
 
     let journal = receipt.journal;
-    let digest = from_slice::<Digest>(journal.as_slice()).expect("Journal should contain SHA Digest");
+    let digest =
+        from_slice::<Digest>(journal.as_slice()).expect("Journal should contain SHA Digest");
 
     println!("I provably know data whose SHA-256 hash is {}", digest);
 }

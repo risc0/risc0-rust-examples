@@ -2,8 +2,8 @@ use std::io::prelude::*;
 
 use json_core::Outputs;
 use methods::{SEARCH_JSON_ID, SEARCH_JSON_PATH};
-use risc0_zkvm::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::Prover;
 
 fn main() {
     let mut file =

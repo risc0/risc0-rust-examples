@@ -58,7 +58,7 @@ mod tests {
 
     use crate::provably_hash;
 
-    const TEST_STRING: &str = "abcd";
+    const TEST_STRING: &str = "abc";
 
     #[test]
     fn main() {

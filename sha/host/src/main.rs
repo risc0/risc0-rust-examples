@@ -54,7 +54,6 @@ mod tests {
     use methods::HASH_ID;
     use risc0_zkp::core::sha::Digest;
     use risc0_zkvm::serde::from_slice;
-    use sha2::{Digest as _, Sha256};
 
     use crate::provably_hash;
 
@@ -69,7 +68,7 @@ mod tests {
             .expect("Journal should contain SHA Digest");
         assert_eq!(
             hex::encode(digest.as_bytes()),
-            hex::encode(Sha256::digest(TEST_STRING).as_slice()),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
             "We expect to match the reference SHA-256 hash of the standard test value 'abc'"
         );
     }

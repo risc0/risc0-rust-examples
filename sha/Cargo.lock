@@ -1508,7 +1508,6 @@ dependencies = [
  "risc0-zkp",
  "risc0-zkvm",
  "serde",
- "sha2",
 ]
 
 [[package]]

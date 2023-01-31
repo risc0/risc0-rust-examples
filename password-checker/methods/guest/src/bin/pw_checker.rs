@@ -15,9 +15,10 @@
 #![no_main]
 
 use password_checker_core::PasswordRequest;
-use risc0_zkvm_guest::{env, sha};
+use risc0_zkvm::guest::env;
+use risc0_zkvm::sha::{Sha, sha};
 
-risc0_zkvm_guest::entry!(main);
+risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let request: PasswordRequest = env::read();
@@ -37,9 +38,9 @@ pub fn main() {
 
     let mut salted_password = request.password.as_bytes().to_vec();
     salted_password.extend(request.salt);
-    let password_hash = sha::digest_u8_slice(&salted_password[..]);
+    let password_hash = sha().hash_bytes(&salted_password[..]);
 
-    env::commit(&password_hash);
+    env::commit(&*password_hash);
     env::commit(&request.salt);
 }
 

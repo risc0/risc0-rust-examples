@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = "3.1.18"
+clap = "3.1"
 digital-signature-core = { path = "../core" }
 digital-signature-methods = { path = "../methods" }
-env_logger = "0.9.0"
-log = "0.4.17"
-risc0-zkp = "0.11"
-risc0-zkvm = "0.11"
+env_logger = "0.9"
+log = "0.4"
+risc0-zkp = "0.12"
+risc0-zkvm = "0.12"
 serde = "1.0"
-sha2 = "0.10.2"
+sha2 = "0.10"
 
 [dev-dependencies]
 ctor = "0.1"

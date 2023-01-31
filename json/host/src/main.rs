@@ -16,8 +16,8 @@ use std::io::prelude::*;
 
 use json_core::Outputs;
 use methods::{SEARCH_JSON_ID, SEARCH_JSON_PATH};
-use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::Prover;
 
 fn main() {
     let mut file =
@@ -31,7 +31,7 @@ fn main() {
     let mut prover = Prover::new(&method_code, SEARCH_JSON_ID)
         .expect("Prover should be constructed from matching method code & ID");
 
-    prover.add_input(&to_vec(&data).unwrap()).unwrap();
+    prover.add_input_u32_slice(&to_vec(&data).expect("should be serializable"));
 
     // Run prover & generate receipt
     let receipt = prover.run().expect("Code should be provable");
@@ -40,9 +40,7 @@ fn main() {
         .verify(SEARCH_JSON_ID)
         .expect("Proven code should verify");
 
-    let journal = &receipt
-        .get_journal_vec()
-        .expect("Receipt should have journal");
+    let journal = &receipt.journal;
     let outputs: Outputs = from_slice(&journal).expect("Journal should contain an Outputs object");
 
     println!("\nThe JSON file with hash\n  {}\nprovably contains a field 'critical_data' with value {}\n", outputs.hash, outputs.data);

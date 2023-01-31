@@ -7,6 +7,6 @@ edition = "2021"
 chess-core = { path = "../core" }
 clap = "4.0"
 methods = { path = "../methods" }
-risc0-zkvm = "0.11"
+risc0-zkvm = "0.12"
 serde = "1.0"
 shakmaty = "0.22"

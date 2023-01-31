@@ -18,8 +18,8 @@ use password_checker_core::PasswordRequest;
 use password_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};
 use rand::prelude::*;
 use risc0_zkp::core::sha::Digest;
-use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::Prover;
 
 fn main() {
     let mut rng = StdRng::from_entropy();
@@ -37,10 +37,10 @@ fn main() {
 
     // Adding input to the prover makes it readable by the guest
     let vec = to_vec(&request).unwrap();
-    prover.add_input(&vec).unwrap();
+    prover.add_input_u32_slice(&vec);
 
     let receipt = prover.run().unwrap();
-    let password_hash: Digest = from_slice(&receipt.get_journal_vec().unwrap()).unwrap();
+    let password_hash: Digest = from_slice(&receipt.journal).unwrap();
     println!("Password hash is: {}", &password_hash);
 
     // In most scenarios, we would serialize and send the receipt to a verifier here

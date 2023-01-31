@@ -1,15 +1,15 @@
 [package]
 name = "methods-guest"
-version = "0.1.0"
+version = "0.12.0"
 edition = "2021"
 
 [workspace]
 
 [build-dependencies]
-risc0-build = "0.11"
+risc0-build = "0.12"
 
 [dependencies]
 # chess = "3.2"
 shakmaty = "0.22"
-risc0-zkvm-guest = "0.11"
+risc0-zkvm = { version = "0.12", default-features = false, features = ["std"]}
 chess-core = { path = "../../core" }

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use risc0_zkvm::host::{Prover, Receipt, Result};
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::{Prover, Receipt, Result};
 use voting_machine_core::{
     Ballot, FreezeVotingMachineCommit, FreezeVotingMachineParams, FreezeVotingMachineResult,
     InitializeVotingMachineCommit, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult,
@@ -27,8 +27,7 @@ pub struct InitMessage {
 
 impl InitMessage {
     pub fn get_state(&self) -> Result<InitializeVotingMachineCommit> {
-        let msg = self.receipt.get_journal_vec()?;
-        Ok(from_slice(msg.as_slice()).unwrap())
+        Ok(from_slice(&self.receipt.journal).unwrap())
     }
 
     pub fn verify_and_get_commit(&self) -> Result<InitializeVotingMachineCommit> {
@@ -43,8 +42,7 @@ pub struct SubmitBallotMessage {
 
 impl SubmitBallotMessage {
     pub fn get_commit(&self) -> Result<SubmitBallotCommit> {
-        let msg = self.receipt.get_journal_vec()?;
-        Ok(from_slice(msg.as_slice()).unwrap())
+        Ok(from_slice(&self.receipt.journal).unwrap())
     }
 
     pub fn verify_and_get_commit(&self) -> Result<SubmitBallotCommit> {
@@ -59,8 +57,7 @@ pub struct FreezeStationMessage {
 
 impl FreezeStationMessage {
     pub fn get_commit(&self) -> Result<FreezeVotingMachineCommit> {
-        let msg = self.receipt.get_journal_vec()?;
-        Ok(from_slice(msg.as_slice()).unwrap())
+        Ok(from_slice(&self.receipt.journal).unwrap())
     }
 
     pub fn verify_and_get_commit(&self) -> Result<FreezeVotingMachineCommit> {
@@ -83,7 +80,7 @@ impl PollingStation {
         log::info!("init");
         let mut prover = Prover::new(&std::fs::read(INIT_PATH).unwrap(), INIT_ID)?;
         let vec = to_vec(&self.state).unwrap();
-        prover.add_input(vec.as_slice())?;
+        prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
         Ok(InitMessage { receipt })
     }
@@ -93,11 +90,11 @@ impl PollingStation {
         let params = SubmitBallotParams::new(self.state.clone(), ballot.clone());
         let mut prover = Prover::new(&std::fs::read(SUBMIT_PATH).unwrap(), SUBMIT_ID)?;
         let vec = to_vec(&params).unwrap();
-        prover.add_input(vec.as_slice())?;
+        prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
-        let vec = prover.get_output_vec()?;
+        let vec = prover.get_output_u32_vec()?;
         log::info!("{:?}", vec);
-        let result = from_slice::<SubmitBallotResult>(vec.as_slice());
+        let result = from_slice::<SubmitBallotResult>(&vec);
         log::info!("{:?}", result);
         self.state = result.unwrap().state.clone();
         Ok(SubmitBallotMessage { receipt })
@@ -108,10 +105,10 @@ impl PollingStation {
         let params = FreezeVotingMachineParams::new(self.state.clone());
         let mut prover = Prover::new(&std::fs::read(FREEZE_PATH).unwrap(), FREEZE_ID)?;
         let vec = to_vec(&params).unwrap();
-        prover.add_input(vec.as_slice())?;
+        prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
-        let vec = prover.get_output_vec()?;
-        let result = from_slice::<FreezeVotingMachineResult>(vec.as_slice()).unwrap();
+        let slice = prover.get_output_u32_vec()?;
+        let result = from_slice::<FreezeVotingMachineResult>(&slice).unwrap();
         self.state = result.state.clone();
         Ok(FreezeStationMessage { receipt })
     }

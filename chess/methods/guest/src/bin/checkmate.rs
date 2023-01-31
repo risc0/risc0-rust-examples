@@ -15,12 +15,12 @@
 #![no_main]
 
 use chess_core::Inputs;
-use risc0_zkvm_guest::env;
+use risc0_zkvm::guest::env;
 use shakmaty::fen::Fen;
 use shakmaty::san::San;
 use shakmaty::{CastlingMode, Chess, FromSetup, Move, Position, Setup};
 
-risc0_zkvm_guest::entry!(main);
+risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let inputs: Inputs = env::read();

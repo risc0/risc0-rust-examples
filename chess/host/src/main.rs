@@ -15,8 +15,8 @@
 use chess_core::Inputs;
 use clap::{Arg, Command};
 use methods::{CHECKMATE_ID, CHECKMATE_PATH};
-use risc0_zkvm::host::Prover;
 use risc0_zkvm::serde::{from_slice, to_vec};
+use risc0_zkvm::Prover;
 use shakmaty::fen::Fen;
 use shakmaty::{CastlingMode, Chess, FromSetup, Position, Setup};
 
@@ -45,7 +45,7 @@ fn main() {
     let method_code = std::fs::read(CHECKMATE_PATH).unwrap();
     let mut prover = Prover::new(&method_code, CHECKMATE_ID).unwrap();
 
-    prover.add_input(&to_vec(&inputs).unwrap()).unwrap();
+    prover.add_input_u32_slice(&to_vec(&inputs).expect("Should be serializable"));
 
     // Run prover & generate receipt
     let receipt = prover
@@ -54,7 +54,7 @@ fn main() {
 
     // Verify receipt and parse it for committed data
     receipt.verify(CHECKMATE_ID).unwrap();
-    let vec = receipt.get_journal_vec().unwrap();
+    let vec = receipt.journal;
     let committed_state: String = from_slice(&vec).unwrap();
     assert_eq!(inputs.board, committed_state);
     let fen = Fen::from_ascii(committed_state.as_bytes()).unwrap();

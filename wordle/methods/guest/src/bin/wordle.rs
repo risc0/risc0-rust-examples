@@ -14,10 +14,10 @@
 
 #![no_main]
 
-use risc0_zkvm_guest::{env, sha};
-use wordle_core::{GameState, LetterFeedback, WordFeedback, WORD_LENGTH};
+use risc0_zkvm::guest::{env, sha};
+use wordle_core::{WORD_LENGTH, WordFeedback, LetterFeedback, GameState};
 
-risc0_zkvm_guest::entry!(main);
+risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let word: String = env::read();
@@ -31,7 +31,7 @@ pub fn main() {
         panic!("guess must have length 5!")
     }
 
-    let correct_word_hash = sha::digest_u8_slice(&word.as_bytes()).to_owned();
+    let correct_word_hash = sha::digest(&word.as_bytes()).to_owned();
     env::commit(&correct_word_hash);
 
     let mut score: WordFeedback = WordFeedback::default();

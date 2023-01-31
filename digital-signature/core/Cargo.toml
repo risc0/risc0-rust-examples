@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-risc0-zkp = { git = "https://github.com/risc0/risc0.git", rev = "65fb3871e3ef468be0a306d9f1adf5631d943b46", default-features = false }
+risc0-zkp = { version = "0.12", default-features = false }
 serde = { version = "1.0", default-features = false }

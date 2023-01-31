@@ -13,16 +13,14 @@
 // limitations under the License.
 
 use clap::{Arg, Command};
-use methods::{HASH_ID, HASH_PATH};
+use methods::{HASH_ELF, HASH_ID};
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::{Prover, Receipt};
 
 fn provably_hash(input: &str) -> Receipt {
     // Make the prover.
-    let method_code =
-        std::fs::read(HASH_PATH).expect("Method code should be present at the specified path");
-    let mut prover = Prover::new(&method_code, HASH_ID)
+    let mut prover = Prover::new(HASH_ELF, HASH_ID)
         .expect("Prover should be constructed from matching code and method ID");
 
     prover.add_input_u32_slice(&to_vec(input).expect("input string should serialize"));

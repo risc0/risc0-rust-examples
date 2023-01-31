@@ -14,7 +14,7 @@
 
 use chess_core::Inputs;
 use clap::{Arg, Command};
-use methods::{CHECKMATE_ID, CHECKMATE_PATH};
+use methods::{CHECKMATE_ELF, CHECKMATE_ID};
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::Prover;
 use shakmaty::fen::Fen;
@@ -42,8 +42,7 @@ fn main() {
     };
 
     // Make the prover.
-    let method_code = std::fs::read(CHECKMATE_PATH).unwrap();
-    let mut prover = Prover::new(&method_code, CHECKMATE_ID).unwrap();
+    let mut prover = Prover::new(CHECKMATE_ELF, CHECKMATE_ID).unwrap();
 
     prover.add_input_u32_slice(&to_vec(&inputs).expect("Should be serializable"));
 

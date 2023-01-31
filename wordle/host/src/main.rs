@@ -14,7 +14,7 @@
 
 use std::io;
 
-use methods::{WORDLE_ID, WORDLE_PATH};
+use methods::{WORDLE_ELF, WORDLE_ID};
 use risc0_zkvm::serde::to_vec;
 use risc0_zkvm::{Prover, Receipt};
 use wordle_core::WORD_LENGTH;
@@ -44,8 +44,7 @@ impl Server<'_> {
     }
 
     pub fn check_round(&self, guess_word: &str) -> Receipt {
-        let method_code = std::fs::read(WORDLE_PATH).expect("failed to load method code");
-        let mut prover = Prover::new(&method_code, WORDLE_ID).expect("failed to construct prover");
+        let mut prover = Prover::new(WORDLE_ELF, WORDLE_ID).expect("failed to construct prover");
 
         prover.add_input_u32_slice(to_vec(self.secret_word).unwrap().as_slice());
         prover.add_input_u32_slice(to_vec(&guess_word).unwrap().as_slice());

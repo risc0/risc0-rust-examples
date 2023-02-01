@@ -15,12 +15,12 @@
 #![no_main]
 
 use risc0_zkvm::guest::env;
-use risc0_zkvm::sha::{self, Sha256};
+use sha2::{Digest as _, Sha256};
 
 risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let data: String = env::read();
-    let sha = sha::Impl::hash_bytes(&data.as_bytes());
-    env::commit(&*sha);
+    let sha = Sha256::digest(&data.as_bytes());
+    env::commit(&sha.to_vec());
 }

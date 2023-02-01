@@ -14,7 +14,6 @@
 
 use clap::{Arg, Command};
 use methods::{HASH_ID, HASH_PATH};
-use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::{Prover, Receipt};
 
@@ -40,36 +39,37 @@ fn main() {
 
     // Prove hash and verify it
     let receipt = provably_hash(message);
-    receipt.verify(&HASH_ID).expect("Proven code should verify");
+    receipt.verify(HASH_ID).expect("Proven code should verify");
 
     let journal = receipt.journal;
     let digest =
-        from_slice::<Digest>(journal.as_slice()).expect("Journal should contain SHA Digest");
+        from_slice::<Vec<u8>>(journal.as_slice()).expect("Journal should contain SHA Digest");
 
-    println!("I provably know data whose SHA-256 hash is {}", digest);
+    println!(
+        "I provably know data whose SHA-256 hash is {}",
+        hex::encode(&digest)
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use methods::HASH_ID;
-    use risc0_zkp::core::sha::Digest;
     use risc0_zkvm::serde::from_slice;
-    use sha2::{Digest as _, Sha256};
 
     use crate::provably_hash;
 
-    const TEST_STRING: &str = "abcd";
+    const TEST_STRING: &str = "abc";
 
     #[test]
     fn main() {
         let receipt = provably_hash(TEST_STRING);
-        receipt.verify(&HASH_ID).expect("Proven code should verify");
+        receipt.verify(HASH_ID).expect("Proven code should verify");
 
-        let digest = from_slice::<Digest>(receipt.journal.as_slice())
+        let digest = from_slice::<Vec<u8>>(receipt.journal.as_slice())
             .expect("Journal should contain SHA Digest");
         assert_eq!(
-            hex::encode(digest.as_bytes()),
-            hex::encode(Sha256::digest(TEST_STRING).as_slice()),
+            hex::encode(&digest),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
             "We expect to match the reference SHA-256 hash of the standard test value 'abc'"
         );
     }

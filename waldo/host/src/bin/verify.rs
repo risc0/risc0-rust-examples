@@ -47,6 +47,8 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let args = Args::parse();
 
     // Read the full Where's Waldo image from disk.

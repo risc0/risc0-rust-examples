@@ -19,8 +19,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use image::io::Reader as ImageReader;
 use image::{GenericImageView, RgbImage};
-use risc0_zkvm::receipt::Receipt;
-use risc0_zkvm::serde;
+use risc0_zkvm::{serde, Receipt};
 use waldo_core::image::{ImageMerkleTree, IMAGE_CHUNK_SIZE};
 use waldo_core::Journal;
 use waldo_methods::IMAGE_CROP_ID;
@@ -48,6 +47,8 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let args = Args::parse();
 
     // Read the full Where's Waldo image from disk.

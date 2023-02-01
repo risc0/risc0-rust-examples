@@ -19,8 +19,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use image::io::Reader as ImageReader;
 use image::GenericImageView;
-use risc0_zkvm::prove::{Prover, ProverOpts};
-use risc0_zkvm::serde;
+use risc0_zkvm::{serde, Prover, ProverOpts};
 use waldo_core::image::{ImageMask, ImageMerkleTree, IMAGE_CHUNK_SIZE};
 use waldo_core::merkle::VECTOR_ORACLE_CHANNEL;
 use waldo_core::PrivateInput;
@@ -62,6 +61,8 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let args = Args::parse();
 
     // Read the image from disk.

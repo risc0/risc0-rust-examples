@@ -15,7 +15,7 @@
 use std::fs;
 
 use password_checker_core::PasswordRequest;
-use password_checker_methods::{PW_CHECKER_ID, PW_CHECKER_PATH};
+use password_checker_methods::{PW_CHECKER_ELF, PW_CHECKER_ID};
 use rand::prelude::*;
 use risc0_zkp::core::sha::Digest;
 use risc0_zkvm::serde::{from_slice, to_vec};
@@ -32,8 +32,7 @@ fn main() {
     };
 
     // a new prover is created to run the pw_checker method
-    let elf_contents = fs::read(PW_CHECKER_PATH).unwrap();
-    let mut prover = Prover::new(&elf_contents, PW_CHECKER_ID).unwrap();
+    let mut prover = Prover::new(PW_CHECKER_ELF, PW_CHECKER_ID).unwrap();
 
     // Adding input to the prover makes it readable by the guest
     let vec = to_vec(&request).unwrap();

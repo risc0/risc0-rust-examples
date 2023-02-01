@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use methods::{MULTIPLY_ID, MULTIPLY_PATH};
+use methods::{MULTIPLY_ELF, MULTIPLY_ID};
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::Prover;
 
@@ -23,9 +23,7 @@ fn main() {
 
     // Multiply them inside the ZKP
     // First, we make the prover, loading the 'multiply' method
-    let multiply_src = std::fs::read(MULTIPLY_PATH)
-        .expect("Method code should be present at the specified path; did you use the correct *_PATH constant?");
-    let mut prover = Prover::new(&multiply_src, MULTIPLY_ID).expect(
+    let mut prover = Prover::new(MULTIPLY_ELF, MULTIPLY_ID).expect(
         "Prover should be constructed from valid method source code and corresponding method ID",
     );
 

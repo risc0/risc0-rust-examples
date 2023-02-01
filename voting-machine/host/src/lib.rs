@@ -19,7 +19,7 @@ use voting_machine_core::{
     InitializeVotingMachineCommit, SubmitBallotCommit, SubmitBallotParams, SubmitBallotResult,
     VotingMachineState,
 };
-use voting_machine_methods::{FREEZE_ID, FREEZE_PATH, INIT_ID, INIT_PATH, SUBMIT_ID, SUBMIT_PATH};
+use voting_machine_methods::{FREEZE_ELF, FREEZE_ID, INIT_ELF, INIT_ID, SUBMIT_ELF, SUBMIT_ID};
 
 pub struct InitMessage {
     receipt: Receipt,
@@ -78,7 +78,7 @@ impl PollingStation {
 
     pub fn init(&self) -> Result<InitMessage> {
         log::info!("init");
-        let mut prover = Prover::new(&std::fs::read(INIT_PATH).unwrap(), INIT_ID)?;
+        let mut prover = Prover::new(INIT_ELF, INIT_ID)?;
         let vec = to_vec(&self.state).unwrap();
         prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
@@ -88,7 +88,7 @@ impl PollingStation {
     pub fn submit(&mut self, ballot: &Ballot) -> Result<SubmitBallotMessage> {
         log::info!("submit: {:?}", ballot);
         let params = SubmitBallotParams::new(self.state.clone(), ballot.clone());
-        let mut prover = Prover::new(&std::fs::read(SUBMIT_PATH).unwrap(), SUBMIT_ID)?;
+        let mut prover = Prover::new(SUBMIT_ELF, SUBMIT_ID)?;
         let vec = to_vec(&params).unwrap();
         prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;
@@ -103,7 +103,7 @@ impl PollingStation {
     pub fn freeze(&mut self) -> Result<FreezeStationMessage> {
         log::info!("freeze");
         let params = FreezeVotingMachineParams::new(self.state.clone());
-        let mut prover = Prover::new(&std::fs::read(FREEZE_PATH).unwrap(), FREEZE_ID)?;
+        let mut prover = Prover::new(FREEZE_ELF, FREEZE_ID)?;
         let vec = to_vec(&params).unwrap();
         prover.add_input_u32_slice(vec.as_slice());
         let receipt = prover.run()?;

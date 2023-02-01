@@ -24,7 +24,7 @@ use risc0_zkvm::serde;
 use waldo_core::image::{ImageMask, ImageMerkleTree, IMAGE_CHUNK_SIZE};
 use waldo_core::merkle::VECTOR_ORACLE_CHANNEL;
 use waldo_core::PrivateInput;
-use waldo_methods::{IMAGE_CROP_ID, IMAGE_CROP_PATH};
+use waldo_methods::{IMAGE_CROP_ELF, IMAGE_CROP_ID};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -102,12 +102,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Make the prover, loading the image crop method binary and method ID, and registering a
     // send_recv callback to communicate vector oracle data from the Merkle tree.
-    let method_code = std::fs::read(IMAGE_CROP_PATH)?;
     let prover_opts = ProverOpts::default().with_sendrecv_callback(
         VECTOR_ORACLE_CHANNEL,
         img_merkle_tree.vector_oracle_callback(),
     );
-    let mut prover = Prover::new_with_opts(&method_code, IMAGE_CROP_ID, prover_opts)?;
+    let mut prover = Prover::new_with_opts(IMAGE_CROP_ELF, IMAGE_CROP_ID, prover_opts)?;
 
     // Give the private input to the guest, including Waldo's location.
     let input = PrivateInput {

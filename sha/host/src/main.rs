@@ -43,7 +43,7 @@ fn main() {
 
     let journal = receipt.journal;
     let digest =
-        from_slice::<Vec<u8>>(journal.as_slice()).expect("Journal should contain SHA Digest");
+        from_slice::<String>(journal.as_slice()).expect("Journal should contain SHA Digest");
 
     println!(
         "I provably know data whose SHA-256 hash is {}",

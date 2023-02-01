@@ -14,13 +14,26 @@
 
 #![no_main]
 
+use pbkdf2::password_hash::{PasswordHasher as _, Salt};
+use pbkdf2::{Params, Pbkdf2};
 use risc0_zkvm::guest::env;
-use sha2::{Digest as _, Sha256};
 
 risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
     let data: String = env::read();
-    let sha = Sha256::digest(&data.as_bytes());
-    env::commit(&sha.to_vec());
+    let params = Params {
+        rounds: 1,
+        output_length: 256,
+    };
+    let hash = Pbkdf2
+        .hash_password_customized(
+            data.as_bytes(),
+            None,
+            None,
+            params,
+            Salt::new("salt").unwrap(),
+        )
+        .unwrap();
+    env::commit(&hash.to_string());
 }

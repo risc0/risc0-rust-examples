@@ -751,6 +751,7 @@ dependencies = [
 name = "methods-guest"
 version = "0.1.0"
 dependencies = [
+ "pbkdf2",
  "risc0-build",
  "risc0-zkvm",
  "sha2",

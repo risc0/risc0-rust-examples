@@ -1,0 +1,22 @@
+[package]
+name = "guest"
+version = "0.12.0"
+edition = "2021"
+
+[workspace]
+
+[build-dependencies]
+risc0-build = { path = "../../../../risc0/risc0/build" }
+
+[dependencies]
+getrandom = { version = "0.2", features = ["custom"] }
+bevy-core = { path = "../../core" }
+risc0-zkvm = { path = "../../../../risc0/risc0/zkvm", default-features = false, features = [ "std" ] }
+json = "0.12"
+bevy_ecs = "0.9.1"
+
+
+[patch.crates-io]
+crossbeam = { path = "../../../../crossbeam" }
+crossbeam-utils = { path = "../../../../crossbeam/crossbeam-utils" }
+crossbeam-channel = { path = "../../../../crossbeam/crossbeam-channel" }

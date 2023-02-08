@@ -1,0 +1,12 @@
+[package]
+name = "bevy-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+json = "0.12"
+bevy-core = { path = "../core" }
+methods = { path = "../methods" }
+risc0-zkp = { path = "../../../risc0/risc0/zkp" }
+risc0-zkvm = { path = "../../../risc0/risc0/zkvm" }
+serde = "1.0"

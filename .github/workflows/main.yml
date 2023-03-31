@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chess
+          - digital-signature
+          - factors
+          - json
+          - password-checker
+          - sha
+          - voting-machine
+          - wordle
+          - waldo
+        os: [Linux, macOS]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Fetch the merge commit and origin/HEAD.
+          fetch-depth: 2
+      - uses: risc0/actions-rs-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install cargo-sort
+        uses: risc0/cargo-install@v1
+        with:
+          crate: cargo-sort
+          version: "1.0"
+      - run: cargo fmt --all -- --check
+        working-directory: ${{ matrix.project }}
+      - run: cargo sort --workspace --check
+        working-directory: ${{ matrix.project }}
+      - run: npx @kt3k/license-checker
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chess
+          - digital-signature
+          - factors
+          - json
+          - password-checker
+          - sha
+          - voting-machine
+          - wordle
+          - waldo
+        os: [Linux, macOS]
+    runs-on: [self-hosted, "${{ matrix.os }}"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test --release
+        working-directory: ${{ matrix.project }}
